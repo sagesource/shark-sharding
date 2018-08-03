@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns="http://sharksharding.com/schema/datasource"
+           elementFormDefault="qualified"
+           targetNamespace="http://sharksharding.com/schema/datasource">
+
+    <xs:element name="beanName">
+        <xs:complexType>
+            <xs:attribute name="value" use="required" type="xs:string"/>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="property">
+        <xs:complexType>
+            <xs:attribute name="value" use="required" type="xs:string"/>
+            <xs:attribute name="name" use="required" type="xs:string"/>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- 分表配置 -->
+    <xs:element name="table-sharding">
+        <xs:complexType>
+            <xs:attribute name="strategies-package" use="required" type="xs:string"/>
+            <xs:attribute name="order" type="xs:string"/>
+        </xs:complexType>
+    </xs:element>
+    <!-- 分库配置 -->
+    <xs:element name="repository-sharding">
+        <xs:complexType>
+            <xs:attribute name="strategies-package" type="xs:string"/>
+            <xs:attribute name="order" type="xs:string"/>
+        </xs:complexType>
+    </xs:element>
+    <!-- 连接池配置 -->
+    <xs:element name="pool-config">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="property" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:sequence>
+            <xs:attribute name="atom-names" use="required" type="xs:string"/>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="pool-configs">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="pool-config" minOccurs="1" maxOccurs="unbounded"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- 数据源配置 -->
+    <xs:element name="matrix-datasource">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="property" minOccurs="0" maxOccurs="unbounded"/>
+                <xs:element ref="pool-configs" minOccurs="0" maxOccurs="unbounded"/>
+                <xs:element ref="repository-sharding" minOccurs="0" maxOccurs="1"/>
+                <xs:element ref="table-sharding" minOccurs="0" maxOccurs="1"/>
+            </xs:sequence>
+            <!-- 数据源名称 -->
+            <xs:attribute name="id" use="required" type="xs:string"/>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>
