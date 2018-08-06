@@ -10,7 +10,7 @@ import com.sharksharding.enums.MasterSlaveType;
  *     email       job.xueqi@outlook.com
  * </pre>
  */
-public @interface ReadWrite {
+public @interface MasterSlave {
 
 	/**
 	 * 读写分离类型

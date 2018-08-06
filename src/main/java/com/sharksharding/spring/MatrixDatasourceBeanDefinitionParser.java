@@ -4,6 +4,7 @@ import com.alibaba.druid.pool.DruidDataSource;
 import com.sharksharding.common.Constants;
 import com.sharksharding.common.DataSourceUtils;
 import com.sharksharding.datasource.MasterSlaveDataSource;
+import com.sharksharding.datasource.interceptor.AnnotationMasterSlaveDataSourceInterceptor;
 import com.sharksharding.model.MatrixAtomModel;
 import com.sharksharding.model.MatrixDataSourceMetaModel;
 import com.sharksharding.model.MatrixDataSourceModel;
@@ -15,7 +16,9 @@ import org.springframework.beans.factory.config.RuntimeBeanReference;
 import org.springframework.beans.factory.support.ManagedMap;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.beans.factory.xml.BeanDefinitionParser;
+import org.springframework.beans.factory.xml.BeanDefinitionParserDelegate;
 import org.springframework.beans.factory.xml.ParserContext;
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import java.util.Arrays;
@@ -36,6 +39,8 @@ public class MatrixDatasourceBeanDefinitionParser implements BeanDefinitionParse
 
 	@Override
 	public BeanDefinition parse(Element element, ParserContext parserContext) {
+		Document appDoc = element.getOwnerDocument();
+
 		// 解析标签元素信息
 		MatrixDataSourceMetaModel matrixDataSourceMetaModel = parseMatrixDataSourceMetaModel(element);
 		// 获取连接信息
@@ -45,9 +50,12 @@ public class MatrixDatasourceBeanDefinitionParser implements BeanDefinitionParse
 		AopNamespaceUtils.registerAspectJAnnotationAutoProxyCreatorIfNecessary(parserContext, element);
 
 		// 注册数据源
-		registerDsBeanDefinition(matrixDataSourceMetaModel, matrixDataSourceModelList, parserContext);
+		this.registerDsBeanDefinition(matrixDataSourceMetaModel, matrixDataSourceModelList, parserContext);
 
-		// 注册拦截器
+		// 注册分库拦截器
+		// 注册读写分离拦截器
+		this.registerMasterSlaveInterceptor(matrixDataSourceMetaModel, parserContext, appDoc);
+		// 注册分表拦截器
 		// 注册事务管理器
 
 		return null;
@@ -115,6 +123,46 @@ public class MatrixDatasourceBeanDefinitionParser implements BeanDefinitionParse
 		} else {
 			// TODO
 		}
+	}
+
+	/**
+	 * 创建主从数据源拦截器
+	 *
+	 * @param matrixDataSourceMetaModel
+	 * @param parserContext
+	 */
+	private void registerMasterSlaveInterceptor(MatrixDataSourceMetaModel matrixDataSourceMetaModel, ParserContext parserContext, Document appDoc) {
+		// 数据源名称
+		String             matrixName         = matrixDataSourceMetaModel.getId();
+		RootBeanDefinition rootBeanDefinition = new RootBeanDefinition(AnnotationMasterSlaveDataSourceInterceptor.class);
+		parserContext.getRegistry().registerBeanDefinition(DataSourceUtils.buildBeanName(matrixName, ANNOTATION_MASTER_SLAVE_DATASOURCE_INTERCEPTOR), rootBeanDefinition);
+		// 创建 xml 元素
+		BeanDefinitionParserDelegate beanDefDelegate = parserContext.getDelegate();
+		beanDefDelegate.parseCustomElement(buildMasterSlaveAopConfigElmt(matrixDataSourceMetaModel, appDoc));
+	}
+
+	private Element buildMasterSlaveAopConfigElmt(MatrixDataSourceMetaModel matrixDataSourceMetaModel, Document appDoc) {
+		// 数据源名称
+		String matrixName = matrixDataSourceMetaModel.getId();
+
+		// 组装 Spring AOP Config 标签
+		Element annotationMasterSlaveAopConfigElmt = appDoc.createElementNS(AOP_NAMESPACE_URI, CONFIG);
+
+		// 切面表达式元素
+		Element annotationMasterSlavePointcutChild = appDoc.createElementNS(AOP_NAMESPACE_URI, POINTCUT);
+		annotationMasterSlavePointcutChild.setAttribute(XSD_ID, DataSourceUtils.buildBeanName(matrixName, ANNOTATION_MASTER_SLAVE_DATA_SOURCE_POINTCUT));
+		annotationMasterSlavePointcutChild.setAttribute(EXPRESSION, MASTERSLAVE_POINTCUT_EXPRESSION);
+		annotationMasterSlaveAopConfigElmt.appendChild(annotationMasterSlavePointcutChild);
+
+		// advisor元素
+		Element annotationMasterSlaveAdvisorChild = appDoc.createElementNS(AOP_NAMESPACE_URI, ADVISOR);
+		annotationMasterSlaveAdvisorChild.setAttribute(POINTCUT_REF,
+				DataSourceUtils.buildBeanName(matrixName, ANNOTATION_MASTER_SLAVE_DATA_SOURCE_POINTCUT));
+		annotationMasterSlaveAdvisorChild.setAttribute(ADVICE_REF,
+				DataSourceUtils.buildBeanName(matrixName, ANNOTATION_MASTER_SLAVE_DATASOURCE_INTERCEPTOR));
+		annotationMasterSlaveAdvisorChild.setAttribute(XSD_MATRIX_ORDER, ANNOTATION_MASTERSLAVE_POINTCUT_ORDER);
+		annotationMasterSlaveAopConfigElmt.appendChild(annotationMasterSlaveAdvisorChild);
+		return annotationMasterSlaveAopConfigElmt;
 	}
 
 	/**

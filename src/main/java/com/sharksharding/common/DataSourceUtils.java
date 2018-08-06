@@ -47,4 +47,15 @@ public class DataSourceUtils {
 		}
 		return result.toString();
 	}
+
+	/**
+	 * 构建 bean name
+	 *
+	 * @param dataSourceId
+	 * @param beanName
+	 * @return
+	 */
+	public static String buildBeanName(String dataSourceId, String beanName) {
+		return dataSourceId + "_" + beanName;
+	}
 }
