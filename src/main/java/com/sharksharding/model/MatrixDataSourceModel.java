@@ -11,24 +11,34 @@ import java.util.List;
  * </pre>
  */
 public class MatrixDataSourceModel {
-	// 数据源名称
-	private String                matrixName;
-	// 原子数据源配置
-	private List<MatrixAtomModel> groups;
+	// 数据源组名称，分库时为分库shardkey
+	private String                groupName;
+	// 读写分离 LB 策略
+	private String                loadBalance;
+	// 原子数据源信息
+	private List<MatrixAtomModel> atoms;
 
-	public String getMatrixName() {
-		return matrixName;
+	public String getGroupName() {
+		return groupName;
 	}
 
-	public void setMatrixName(String matrixName) {
-		this.matrixName = matrixName;
+	public void setGroupName(String groupName) {
+		this.groupName = groupName;
 	}
 
-	public List<MatrixAtomModel> getGroups() {
-		return groups;
+	public String getLoadBalance() {
+		return loadBalance;
 	}
 
-	public void setGroups(List<MatrixAtomModel> groups) {
-		this.groups = groups;
+	public void setLoadBalance(String loadBalance) {
+		this.loadBalance = loadBalance;
+	}
+
+	public List<MatrixAtomModel> getAtoms() {
+		return atoms;
+	}
+
+	public void setAtoms(List<MatrixAtomModel> atoms) {
+		this.atoms = atoms;
 	}
 }

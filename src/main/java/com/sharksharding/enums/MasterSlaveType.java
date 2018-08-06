@@ -8,7 +8,7 @@ package com.sharksharding.enums;
  *     email       job.xueqi@outlook.com
  * </pre>
  */
-public enum ReadWriteType {
+public enum MasterSlaveType {
 
 	MASTER,
 	SLAVE

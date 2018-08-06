@@ -58,6 +58,8 @@
             </xs:sequence>
             <!-- 数据源名称 -->
             <xs:attribute name="id" use="required" type="xs:string"/>
+            <!-- 该数据源使用的事务管理器 -->
+            <xs:attribute name="transactionManager" type="xs:string"/>
         </xs:complexType>
     </xs:element>
 </xs:schema>

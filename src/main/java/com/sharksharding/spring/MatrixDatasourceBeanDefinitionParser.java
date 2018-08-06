@@ -2,20 +2,26 @@ package com.sharksharding.spring;
 
 import com.alibaba.druid.pool.DruidDataSource;
 import com.sharksharding.common.Constants;
-import com.sharksharding.datasource.ReadWriteDataSource;
+import com.sharksharding.common.DataSourceUtils;
+import com.sharksharding.datasource.MasterSlaveDataSource;
 import com.sharksharding.model.MatrixAtomModel;
+import com.sharksharding.model.MatrixDataSourceMetaModel;
 import com.sharksharding.model.MatrixDataSourceModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.aop.config.AopNamespaceUtils;
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.RuntimeBeanReference;
-import org.springframework.beans.factory.support.BeanDefinitionBuilder;
+import org.springframework.beans.factory.support.ManagedMap;
 import org.springframework.beans.factory.support.RootBeanDefinition;
-import org.springframework.beans.factory.xml.AbstractSingleBeanDefinitionParser;
+import org.springframework.beans.factory.xml.BeanDefinitionParser;
 import org.springframework.beans.factory.xml.ParserContext;
 import org.w3c.dom.Element;
 
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * <p></p>
@@ -25,106 +31,141 @@ import java.util.concurrent.atomic.AtomicInteger;
  *     email       job.xueqi@outlook.com
  * </pre>
  */
-public class MatrixDatasourceBeanDefinitionParser extends AbstractSingleBeanDefinitionParser implements Constants {
+public class MatrixDatasourceBeanDefinitionParser implements BeanDefinitionParser, Constants {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MatrixDatasourceBeanDefinitionParser.class);
 
-	private static final AtomicInteger ATOMIC_INTEGER = new AtomicInteger(0);
-
 	@Override
-	protected Class<?> getBeanClass(Element element) {
-		return ReadWriteDataSource.class;
-	}
+	public BeanDefinition parse(Element element, ParserContext parserContext) {
+		// 解析标签元素信息
+		MatrixDataSourceMetaModel matrixDataSourceMetaModel = parseMatrixDataSourceMetaModel(element);
+		// 获取连接信息
+		List<MatrixDataSourceModel> matrixDataSourceModelList = getMatrixDataSourceModel(matrixDataSourceMetaModel);
 
-	@Override
-	protected void doParse(Element element, ParserContext parserContext, BeanDefinitionBuilder builder) {
-		// 获取读写分离数据源 ID
-		String matrixName = element.getAttribute(XSD_ID);
-		LOGGER.info(">>>> init matrix matrixName=[{}] <<<<", matrixName);
+		// 增加annotation的creator
+		AopNamespaceUtils.registerAspectJAnnotationAutoProxyCreatorIfNecessary(parserContext, element);
 
-		// 获取连接配置对象
-		MatrixDataSourceModel matrixDataSourceModel = getMatrixDataSourceModel(matrixName);
-		boolean               initMasterDataSource  = false;
-		List<Object>          slaveDataSources      = new ArrayList<>();
-		for (MatrixAtomModel matrixAtomModel : matrixDataSourceModel.getGroups()) {
-			// 初始化连接池
-			String driverClassName = "com.mysql.jdbc.Driver";
-			String url             = "jdbc:mysql://" + matrixAtomModel.getHost() + ":" + matrixAtomModel.getPort() + "/" + matrixAtomModel.getDbName() + "?" + matrixAtomModel.getParam();
-			String initMethod      = "init";
-			String destoryMethod   = "close";
-			String username        = matrixAtomModel.getUsername();
-			String password        = matrixAtomModel.getPassword();
+		// 注册数据源
+		registerDsBeanDefinition(matrixDataSourceMetaModel, matrixDataSourceModelList, parserContext);
 
-			Map<String, String> params = new HashMap<>();
-			params.put("driverClassName", driverClassName);
-			params.put("url", url);
-			params.put("username", username);
-			params.put("password", password);
-			RootBeanDefinition rootBeanDefinition = new RootBeanDefinition(DruidDataSource.class);
-			rootBeanDefinition.getPropertyValues().addPropertyValues(params);
-			rootBeanDefinition.setInitMethodName(initMethod);
-			rootBeanDefinition.setDestroyMethodName(destoryMethod);
+		// 注册拦截器
+		// 注册事务管理器
 
-			// 判断 Master 数据源是否已经初始化
-			if (matrixAtomModel.getIsMaster()) {
-				if (initMasterDataSource)
-					throw new IllegalArgumentException("must only one master datasource!");
-
-				String masterDataSourceName = matrixName + "-masterDataSource";
-				parserContext.getRegistry().registerBeanDefinition(masterDataSourceName, rootBeanDefinition);
-
-				// 将 Master 数据源注册
-				builder.addPropertyReference("masterDataSource", masterDataSourceName);
-				initMasterDataSource = true;
-			} else {
-				// 创建 Slave 数据源
-				String slaveDataSourceName = matrixName + "-slaveDataSource" + ATOMIC_INTEGER.incrementAndGet();
-				parserContext.getRegistry().registerBeanDefinition(slaveDataSourceName, rootBeanDefinition);
-
-				slaveDataSources.add(new RuntimeBeanReference(slaveDataSourceName));
-			}
-		}
-
-		// 将从库设置到数据源中
-		if (!initMasterDataSource) {
-			throw new IllegalArgumentException("must init master datasource");
-		}
-		builder.addPropertyValue("slaveDataSources", slaveDataSources);
+		return null;
 	}
 
 
 	//.............//
 
 	/**
-	 * 获取连接配置对象
+	 * 转换解析数据源标签数据
 	 *
-	 * @param matrixName
+	 * @param element
 	 * @return
 	 */
-	private MatrixDataSourceModel getMatrixDataSourceModel(String matrixName) {
-		MatrixAtomModel matrixAtomModel = new MatrixAtomModel();
-		matrixAtomModel.setAtomName("test_master_01");
-		matrixAtomModel.setDbName("test_master_01");
-		matrixAtomModel.setHost("127.0.0.1");
-		matrixAtomModel.setIsMaster(true);
-		matrixAtomModel.setPort(3306);
-		matrixAtomModel.setUsername("root");
-		matrixAtomModel.setPassword("root");
-		matrixAtomModel.setParam("zeroDateTimeBehavior=convertToNull");
+	private MatrixDataSourceMetaModel parseMatrixDataSourceMetaModel(Element element) {
+		MatrixDataSourceMetaModel matrixDataSourceMetaModel = new MatrixDataSourceMetaModel();
+		matrixDataSourceMetaModel.setId(element.getAttribute(XSD_ID));
+		matrixDataSourceMetaModel.setTransactionManager(element.getAttribute(XSD_TRANSACTION_MANAGER));
+		return matrixDataSourceMetaModel;
+	}
 
-		MatrixAtomModel matrixAtomModel1 = new MatrixAtomModel();
-		matrixAtomModel1.setAtomName("test_slave_01");
-		matrixAtomModel1.setDbName("test_slave_01");
-		matrixAtomModel1.setHost("127.0.0.1");
-		matrixAtomModel1.setIsMaster(false);
-		matrixAtomModel1.setPort(3306);
-		matrixAtomModel1.setUsername("root");
-		matrixAtomModel1.setPassword("root");
-		matrixAtomModel1.setParam("zeroDateTimeBehavior=convertToNull");
+	/**
+	 * 注册数据源 Bean
+	 */
+	private void registerDsBeanDefinition(MatrixDataSourceMetaModel matrixDataSourceMetaModel, List<MatrixDataSourceModel> matrixDataSourceModel, ParserContext parserContext) {
+		// 存放 MASTER / SLAVE 数据源
+		ManagedMap<String, RuntimeBeanReference> masterDataSourceMapper = new ManagedMap<>();
+		ManagedMap<String, RuntimeBeanReference> slaveDataSourceMapper  = new ManagedMap<>();
 
+		// 创建原子数据源
+		String matrixName = matrixDataSourceMetaModel.getId();
+		for (MatrixDataSourceModel dataSourceModel : matrixDataSourceModel) {
+			for (MatrixAtomModel matrixAtomModel : dataSourceModel.getAtoms()) {
+				String url = DataSourceUtils.builtUrl(matrixAtomModel);
+
+				// 连接池配置
+				RootBeanDefinition  dsBeanDefinition = new RootBeanDefinition(DruidDataSource.class);
+				Map<String, String> dsPoolParams     = new LinkedHashMap<>();
+				dsPoolParams.put("driverClassName", DEFAULT_DB_DRIVER);
+				dsPoolParams.put("url", url);
+				dsPoolParams.put("username", matrixAtomModel.getUsername());
+				dsPoolParams.put("password", matrixAtomModel.getPassword());
+				dsBeanDefinition.getPropertyValues().addPropertyValues(dsPoolParams);
+				dsBeanDefinition.setInitMethodName(DEFAULT_INIT_METHOD);
+				dsBeanDefinition.setDestroyMethodName(DEFAULT_DESTORY_METHOD);
+
+				// 数据源名称
+				String dsName = DataSourceUtils.buildDsName(matrixName, dataSourceModel, matrixAtomModel);
+				parserContext.getRegistry().registerBeanDefinition(dsName, dsBeanDefinition);
+
+				if (matrixAtomModel.getIsMaster()) {
+					masterDataSourceMapper.put(dsName, new RuntimeBeanReference(dsName));
+				} else {
+					slaveDataSourceMapper.put(dsName, new RuntimeBeanReference(dsName));
+				}
+
+				LOGGER.info(">>>>> matrixName:{}, url:{}, dsName:{} <<<<<", matrixName, url, dsName);
+			}
+		}
+
+		// 创建数据源
+		if (matrixDataSourceModel.size() == 1) {
+			// 只有一个 group 的情况为单库读写分离的场景，创建读写分离数据源
+			registerReadWriteDs(matrixName, parserContext, masterDataSourceMapper, slaveDataSourceMapper);
+		} else {
+			// TODO
+		}
+	}
+
+	/**
+	 * 创建读写分离数据源
+	 *
+	 * @param masterDataSourceMapper
+	 * @param slaveDataSourceMapper
+	 */
+	private void registerReadWriteDs(String matrixName, ParserContext parserContext,
+	                                 ManagedMap<String, RuntimeBeanReference> masterDataSourceMapper,
+	                                 ManagedMap<String, RuntimeBeanReference> slaveDataSourceMapper) {
+		if (masterDataSourceMapper == null || masterDataSourceMapper.size() != 1) {
+			throw new IllegalArgumentException("read/write datasource must only one master data source");
+		}
+
+		RootBeanDefinition dsBeanDefinition = new RootBeanDefinition(MasterSlaveDataSource.class);
+		dsBeanDefinition.getPropertyValues().add(MASTER_DATASOURCE_MAPPER, masterDataSourceMapper);
+		dsBeanDefinition.getPropertyValues().add(SLAVE_DATASOURCE_MAPPER, slaveDataSourceMapper);
+		parserContext.getRegistry().registerBeanDefinition(matrixName, dsBeanDefinition);
+	}
+
+	/**
+	 * 获取连接配置对象
+	 *
+	 * @param matrixDataSourceMetaMode
+	 * @return
+	 */
+	private List<MatrixDataSourceModel> getMatrixDataSourceModel(MatrixDataSourceMetaModel matrixDataSourceMetaMode) {
 		MatrixDataSourceModel model = new MatrixDataSourceModel();
-		model.setGroups(Arrays.asList(matrixAtomModel, matrixAtomModel1));
-		model.setMatrixName("TestSDK");
 
-		return model;
+		MatrixAtomModel model_1 = new MatrixAtomModel();
+		model_1.setHost("127.0.0.1");
+		model_1.setPort("3306");
+		model_1.setDbName("test_master_01");
+		model_1.setUsername("root");
+		model_1.setPassword("root");
+		model_1.setParams("zeroDateTimeBehavior=convertToNull");
+		model_1.setIsMaster(true);
+
+		MatrixAtomModel model_2 = new MatrixAtomModel();
+		model_2.setHost("127.0.0.1");
+		model_2.setPort("3306");
+		model_2.setDbName("test_slave_01");
+		model_2.setUsername("root");
+		model_2.setPassword("root");
+		model_2.setParams("zeroDateTimeBehavior=convertToNull");
+		model_2.setIsMaster(false);
+
+		model.setGroupName("rwds");
+		model.setLoadBalance("random");
+		model.setAtoms(Arrays.asList(model_1, model_2));
+		return Arrays.asList(model);
 	}
 }

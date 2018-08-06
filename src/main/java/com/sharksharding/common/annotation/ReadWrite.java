@@ -1,6 +1,6 @@
 package com.sharksharding.common.annotation;
 
-import com.sharksharding.enums.ReadWriteType;
+import com.sharksharding.enums.MasterSlaveType;
 
 /**
  * <p> 读写分离注解 </p>
@@ -17,6 +17,6 @@ public @interface ReadWrite {
 	 *
 	 * @return
 	 */
-	ReadWriteType type() default ReadWriteType.MASTER;
+	MasterSlaveType type() default MasterSlaveType.MASTER;
 
 }

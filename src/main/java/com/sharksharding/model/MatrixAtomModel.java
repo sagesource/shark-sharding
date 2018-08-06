@@ -9,46 +9,20 @@ package com.sharksharding.model;
  * </pre>
  */
 public class MatrixAtomModel {
-	/**
-	 * 原子名称，分库时，用作分库的 key
-	 */
-	private String  atomName;
-	/**
-	 * 数据库 HOST
-	 */
+	// 数据库IP
 	private String  host;
-	/**
-	 * 数据库 PORT
-	 */
-	private int     port;
-	/**
-	 * 数据库用户名
-	 */
-	private String  username;
-	/**
-	 * 数据库密码
-	 */
-	private String  password;
-	/**
-	 * 数据库名称
-	 */
+	// 数据库PORT
+	private String  port;
+	// 数据库名称
 	private String  dbName;
-	/**
-	 * 数据库连接参数
-	 */
-	private String  param;
-	/**
-	 * 是否为主库
-	 */
+	// 数据库用户名
+	private String  username;
+	// 数据库密码
+	private String  password;
+	// 数据库连接参数
+	private String  params;
+	// 主库标志位
 	private boolean isMaster;
-
-	public String getAtomName() {
-		return atomName;
-	}
-
-	public void setAtomName(String atomName) {
-		this.atomName = atomName;
-	}
 
 	public String getHost() {
 		return host;
@@ -58,12 +32,20 @@ public class MatrixAtomModel {
 		this.host = host;
 	}
 
-	public int getPort() {
+	public String getPort() {
 		return port;
 	}
 
-	public void setPort(int port) {
+	public void setPort(String port) {
 		this.port = port;
+	}
+
+	public String getDbName() {
+		return dbName;
+	}
+
+	public void setDbName(String dbName) {
+		this.dbName = dbName;
 	}
 
 	public String getUsername() {
@@ -82,20 +64,12 @@ public class MatrixAtomModel {
 		this.password = password;
 	}
 
-	public String getDbName() {
-		return dbName;
+	public String getParams() {
+		return params;
 	}
 
-	public void setDbName(String dbName) {
-		this.dbName = dbName;
-	}
-
-	public String getParam() {
-		return param;
-	}
-
-	public void setParam(String param) {
-		this.param = param;
+	public void setParams(String params) {
+		this.params = params;
 	}
 
 	public boolean getIsMaster() {

@@ -6,13 +6,13 @@
        http://sharksharding.com/schema/datasource http://sharksharding.com/schema/datasource/shark-sharding-1.0.0.xsd">
 
     <!-- 创建数据源 -->
-    <shark-sharding:matrix-datasource id="testDataSource">
+    <shark-sharding:matrix-datasource id="testSDK" transactionManager="testSDKTransactionManager">
 
     </shark-sharding:matrix-datasource>
 
     <!-- 事务管理器 -->
-    <bean id="testTransactionManager" class="com.sharksharding.datasource.SmartDataSourceTransactionManager">
-        <property name="dataSource" ref="testDataSource"/>
+    <bean id="testSDKTransactionManager" class="com.sharksharding.datasource.SmartDataSourceTransactionManager">
+        <property name="dataSource" ref="testSDK"/>
     </bean>
 
 </beans>

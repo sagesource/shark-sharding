@@ -1,6 +1,6 @@
 package com.sharksharding.datasource;
 
-import com.sharksharding.enums.ReadWriteType;
+import com.sharksharding.enums.MasterSlaveType;
 
 /**
  * <p></p>
@@ -10,19 +10,19 @@ import com.sharksharding.enums.ReadWriteType;
  *     email       job.xueqi@outlook.com
  * </pre>
  */
-public class ReadWriteDataSourceHolder {
-	private static final ThreadLocal<ReadWriteType> holder = new ThreadLocal<>();
+public class MasterSlaveDataSourceHolder {
+	private static final ThreadLocal<MasterSlaveType> holder = new ThreadLocal<>();
 
-	private ReadWriteDataSourceHolder() {
+	private MasterSlaveDataSourceHolder() {
 	}
 
 	// 设置数据源
-	public static void putDataSource(ReadWriteType dataSource) {
+	public static void putDataSource(MasterSlaveType dataSource) {
 		holder.set(dataSource);
 	}
 
 	//获取数据源
-	public static ReadWriteType getDataSource() {
+	public static MasterSlaveType getDataSource() {
 		return holder.get();
 	}
 
