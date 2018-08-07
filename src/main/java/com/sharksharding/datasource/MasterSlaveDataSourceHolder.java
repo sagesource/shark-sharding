@@ -1,6 +1,8 @@
 package com.sharksharding.datasource;
 
 import com.sharksharding.enums.MasterSlaveType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <p></p>
@@ -11,6 +13,8 @@ import com.sharksharding.enums.MasterSlaveType;
  * </pre>
  */
 public class MasterSlaveDataSourceHolder {
+	private static Logger LOGGER = LoggerFactory.getLogger(MasterSlaveDataSourceHolder.class);
+
 	private static final ThreadLocal<MasterSlaveType> holder = new ThreadLocal<>();
 
 	private MasterSlaveDataSourceHolder() {
@@ -18,6 +22,8 @@ public class MasterSlaveDataSourceHolder {
 
 	// 设置数据源
 	public static void putDataSource(MasterSlaveType dataSource) {
+		if (LOGGER.isDebugEnabled())
+			LOGGER.info("set master/slave thread holder:{}", dataSource);
 		holder.set(dataSource);
 	}
 
@@ -28,6 +34,8 @@ public class MasterSlaveDataSourceHolder {
 
 	// 清除数据源
 	public static void clearDataSource() {
+		if (LOGGER.isDebugEnabled())
+			LOGGER.debug("remove master/slave thread holder");
 		holder.remove();
 	}
 }

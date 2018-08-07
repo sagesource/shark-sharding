@@ -13,6 +13,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * </pre>
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = {"classpath*:application-test.xml"})
+@ContextConfiguration(locations = {"classpath*:applicationContext.xml"})
 public class BaseTest {
 }

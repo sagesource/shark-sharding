@@ -18,6 +18,11 @@ import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.beans.factory.xml.BeanDefinitionParser;
 import org.springframework.beans.factory.xml.BeanDefinitionParserDelegate;
 import org.springframework.beans.factory.xml.ParserContext;
+import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource;
+import org.springframework.transaction.config.TransactionManagementConfigUtils;
+import org.springframework.transaction.interceptor.BeanFactoryTransactionAttributeSourceAdvisor;
+import org.springframework.transaction.interceptor.TransactionInterceptor;
+import org.springframework.util.StringUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -57,6 +62,7 @@ public class MatrixDatasourceBeanDefinitionParser implements BeanDefinitionParse
 		this.registerMasterSlaveInterceptor(matrixDataSourceMetaModel, parserContext, appDoc);
 		// 注册分表拦截器
 		// 注册事务管理器
+		this.registerTransaction(matrixDataSourceMetaModel, parserContext);
 
 		return null;
 	}
@@ -163,6 +169,42 @@ public class MatrixDatasourceBeanDefinitionParser implements BeanDefinitionParse
 		annotationMasterSlaveAdvisorChild.setAttribute(XSD_MATRIX_ORDER, ANNOTATION_MASTERSLAVE_POINTCUT_ORDER);
 		annotationMasterSlaveAopConfigElmt.appendChild(annotationMasterSlaveAdvisorChild);
 		return annotationMasterSlaveAopConfigElmt;
+	}
+
+	/**
+	 * 注册事务配置
+	 *
+	 * @param matrixDataSourceMetaModel
+	 * @param parserContext
+	 */
+	private void registerTransaction(MatrixDataSourceMetaModel matrixDataSourceMetaModel, ParserContext parserContext) {
+		String transactionManager = matrixDataSourceMetaModel.getTransactionManager();
+		if (!StringUtils.isEmpty(transactionManager)) {
+			String txAdvisorBeanName = TransactionManagementConfigUtils.TRANSACTION_ADVISOR_BEAN_NAME;
+			if (!parserContext.getRegistry().containsBeanDefinition(txAdvisorBeanName)) {
+				// Create the TransactionAttributeSource definition.
+				RootBeanDefinition sourceDef = new RootBeanDefinition(AnnotationTransactionAttributeSource.class);
+				sourceDef.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
+				parserContext.getRegistry().registerBeanDefinition("validAnnotationTransactionAttributeSource", sourceDef);
+
+				// Create the TransactionInterceptor definition.
+				RootBeanDefinition interceptorDef = new RootBeanDefinition(TransactionInterceptor.class);
+				interceptorDef.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
+				interceptorDef.getPropertyValues().add("transactionManagerBeanName", transactionManager);
+				interceptorDef.getPropertyValues().add("transactionAttributeSource",
+						new RuntimeBeanReference("validAnnotationTransactionAttributeSource"));
+				String interceptorName = parserContext.getReaderContext().registerWithGeneratedName(interceptorDef);
+
+				// Create the TransactionAttributeSourceAdvisor definition.
+				RootBeanDefinition advisorDef = new RootBeanDefinition(BeanFactoryTransactionAttributeSourceAdvisor.class);
+				advisorDef.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
+				advisorDef.getPropertyValues().add("transactionAttributeSource", new RuntimeBeanReference("validAnnotationTransactionAttributeSource"));
+				advisorDef.getPropertyValues().add("adviceBeanName", interceptorName);
+				advisorDef.getPropertyValues().add("order", TRANSACTION_ADVISOR_ORDER);
+				parserContext.getRegistry().registerBeanDefinition(txAdvisorBeanName, advisorDef);
+
+			}
+		}
 	}
 
 	/**

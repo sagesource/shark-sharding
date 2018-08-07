@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:shark-sharding="http://sharksharding.com/schema/datasource"
+       xmlns:context="http://www.springframework.org/schema/context" xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://sharksharding.com/schema/datasource http://sharksharding.com/schema/datasource/shark-sharding-1.0.0.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <context:annotation-config/>
+    <context:component-scan base-package="com.sharksharding.test"/>
+
+    <!-- 事务管理器 -->
+    <bean id="TestSDKTransactionManager" class="com.sharksharding.datasource.SmartDataSourceTransactionManager">
+        <property name="dataSource" ref="TestSDK"/>
+    </bean>
+
+    <!-- MyBatis配置 -->
+    <bean id="TestSDKSqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="TestSDK"/>
+        <property name="mapperLocations" value="classpath*:mapper/testsdk/*Mapper.xml"/>
+    </bean>
+
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.sharksharding.test.repository.testsdk"/>
+        <property name="sqlSessionFactoryBeanName" value="TestSDKSqlSessionFactory"/>
+        <property name="annotationClass" value="org.springframework.stereotype.Repository"/>
+    </bean>
+
+    <!-- 创建数据源 -->
+    <shark-sharding:matrix-datasource id="TestSDK" transactionManager="TestSDKTransactionManager">
+
+    </shark-sharding:matrix-datasource>
+</beans>

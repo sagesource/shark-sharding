@@ -1,6 +1,8 @@
 package com.sharksharding.datasource;
 
 import com.sharksharding.enums.MasterSlaveType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.support.ManagedMap;
 import org.springframework.jdbc.datasource.lookup.AbstractRoutingDataSource;
 
@@ -19,6 +21,8 @@ import java.util.Random;
  * </pre>
  */
 public class MasterSlaveDataSource extends AbstractRoutingDataSource {
+	private static Logger LOGGER = LoggerFactory.getLogger(MasterSlaveDataSource.class);
+
 	/**
 	 * 主数据源
 	 */
@@ -66,15 +70,27 @@ public class MasterSlaveDataSource extends AbstractRoutingDataSource {
 		if (masterSlaveType == null || masterSlaveType == MasterSlaveType.MASTER
 				|| this.slaveDataSourceMapper == null || this.slaveDataSourceMapper.size() == 0) {
 			// 没有指定数据源类型 强制指定数据源类型为写 从库资源不存在
-			return this.masterDataSourceKeyList.get(0);
-		} else {
-			if (this.slaveDataSourceList.size() == 1)
-				return this.slaveDataSourceList.get(0);
+			String dsKey = this.masterDataSourceKeyList.get(0);
 
-			// todo：从库筛选策略暂时为随机
-			Random random = new Random();
-			int    index  = random.nextInt(this.slaveDataSourceList.size());
-			return this.slaveDataSourceList.get(index);
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("choose master datasource key:{}", dsKey);
+			}
+			return dsKey;
+		} else {
+			String dsKey = null;
+			if (this.slaveDataSourceList.size() == 1) {
+				dsKey = this.slaveDataSourceList.get(0);
+			} else {
+				// todo：从库筛选策略暂时为随机
+				Random random = new Random();
+				int    index  = random.nextInt(this.slaveDataSourceList.size());
+				dsKey = this.slaveDataSourceList.get(index);
+			}
+
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("choose slave datasource key:{}", dsKey);
+			}
+			return dsKey;
 		}
 	}
 

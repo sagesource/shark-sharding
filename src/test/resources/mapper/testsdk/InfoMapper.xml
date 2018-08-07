@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.sharksharding.test.repository.testsdk.InfoRepository">
+    <resultMap id="BaseResultMap" type="com.sharksharding.test.entity.InfoEntity">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="address" property="address" jdbcType="VARCHAR"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+   `id`,
+   `name`,
+   `address`,
+   `update_time`,
+   `create_time`
+ </sql>
+
+    <insert id="insert" parameterType="com.sharksharding.test.entity.InfoEntity" useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO info (`name`,`address`,`update_time`,`create_time`)
+        VALUES
+        (#{name,jdbcType=VARCHAR}, #{address, jdbcType=VARCHAR}, #{updateTime,jdbcType=TIMESTAMP}, #{createTime,jdbcType=TIMESTAMP})
+    </insert>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM info WHERE id=#{id,jdbcType=BIGINT }
+    </select>
+
+</mapper>
+  
+
+  

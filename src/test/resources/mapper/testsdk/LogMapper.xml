@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.sharksharding.test.repository.testsdk.LogRepository">
+    <resultMap id="BaseResultMap" type="com.sharksharding.test.entity.LogEntity">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="action" property="action" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+   `id`,
+   `action`
+ </sql>
+
+    <insert id="insert" parameterType="com.sharksharding.test.entity.LogEntity" useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO log (`action`)
+        VALUES (#{action,jdbcType=VARCHAR})
+    </insert>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM log WHERE id=#{id,jdbcType=BIGINT }
+    </select>
+
+</mapper>
+  
+
+  
