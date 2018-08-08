@@ -1,4 +1,4 @@
-package com.sharksharding.common.annotation;
+package com.sharksharding.datasource.annotation;
 
 import com.sharksharding.enums.MasterSlaveType;
 

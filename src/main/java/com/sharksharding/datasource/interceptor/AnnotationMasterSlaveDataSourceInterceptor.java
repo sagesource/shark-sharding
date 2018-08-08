@@ -1,6 +1,6 @@
 package com.sharksharding.datasource.interceptor;
 
-import com.sharksharding.common.annotation.MasterSlave;
+import com.sharksharding.datasource.annotation.MasterSlave;
 import com.sharksharding.datasource.MasterSlaveDataSourceHolder;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;

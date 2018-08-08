@@ -12,6 +12,7 @@ public interface Constants {
 	public static final String ARTIFACT_ALL_PREFIX = "${";
 	public static final String ARTIFACT_ALL_SUFFIX = "}";
 	public static final String DEFAULT_CHARSET     = "utf-8";
+	public static final String NUM_ZERO            = "0";
 
 	// xsd element attribute
 	public static final String XSD_ID                        = "id";
@@ -26,8 +27,9 @@ public interface Constants {
 	public static final String DEFAULT_DESTORY_METHOD           = "close";
 
 	// field name
-	public static final String MASTER_DATASOURCE_MAPPER = "masterDataSourceMapper";
-	public static final String SLAVE_DATASOURCE_MAPPER  = "slaveDataSourceMapper";
+	public static final String MASTER_DATASOURCE_MAPPER       = "masterDataSourceMapper";
+	public static final String SLAVE_DATASOURCE_MAPPER        = "slaveDataSourceMapper";
+	public static final String MASTER_SLAVE_DATASOURCE_MAPPER = "masterSlaveDataSourceMapper";
 
 	// spring bean name
 	public static final String PROPERTY_PLACE_HOLDER                          = "propertyConfigurer";
@@ -38,7 +40,7 @@ public interface Constants {
 	public static final String ANNOTATION_MASTER_SLAVE_DATA_SOURCE_POINTCUT = "annotationMasterSlaveDataSourcePointcut";
 	public static final String REPOSITORY_SHARDING_DATA_SOURCE_POINTCUT     = "repositoryShardingDataSourcePointcut";
 	public static final String TABLE_SHARDING_DATA_SOURCE_POINTCUT          = "tableShardingDataSourcePointcut";
-	public static final String MASTERSLAVE_POINTCUT_EXPRESSION              = "@annotation(com.sharksharding.common.annotation.MasterSlave)";
+	public static final String MASTERSLAVE_POINTCUT_EXPRESSION              = "@annotation(com.sharksharding.datasource.annotation.MasterSlave)";
 	public static final String EXPRESSION                                   = "expression";
 	public static final String ADVICE_REF                                   = "advice-ref";
 	public static final String POINTCUT_REF                                 = "pointcut-ref";

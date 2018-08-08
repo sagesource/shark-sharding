@@ -28,6 +28,7 @@ import org.springframework.util.StringUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -92,9 +93,14 @@ public class MatrixDatasourceBeanDefinitionParser implements BeanDefinitionParse
 		ManagedMap<String, RuntimeBeanReference> masterDataSourceMapper = new ManagedMap<>();
 		ManagedMap<String, RuntimeBeanReference> slaveDataSourceMapper  = new ManagedMap<>();
 
-		// 创建原子数据源
 		String matrixName = matrixDataSourceMetaModel.getId();
+		// 创建原子数据源
+		Map<String, List<String>> masterSlaveDataSourceMapper = new LinkedHashMap<>();
 		for (MatrixDataSourceModel dataSourceModel : matrixDataSourceModel) {
+			// 从库数据源索引位置，为支持一主多从场景
+			int          slaveDbIndex    = 0;
+			String       msterDsName     = "";
+			List<String> slaveDsNameList = new ArrayList<>();
 			for (MatrixAtomModel matrixAtomModel : dataSourceModel.getAtoms()) {
 				String url = DataSourceUtils.builtUrl(matrixAtomModel);
 
@@ -115,18 +121,24 @@ public class MatrixDatasourceBeanDefinitionParser implements BeanDefinitionParse
 
 				if (matrixAtomModel.getIsMaster()) {
 					masterDataSourceMapper.put(dsName, new RuntimeBeanReference(dsName));
+					msterDsName = dsName;
 				} else {
-					slaveDataSourceMapper.put(dsName, new RuntimeBeanReference(dsName));
+					String slaveDsName = dsName + (slaveDbIndex++);
+					slaveDataSourceMapper.put(slaveDsName, new RuntimeBeanReference(dsName));
+					slaveDsNameList.add(slaveDsName);
 				}
 
 				LOGGER.info(">>>>> matrixName:{}, url:{}, dsName:{} <<<<<", matrixName, url, dsName);
 			}
+
+			// 设置主库数据源名称与对应从库列表的映射
+			masterSlaveDataSourceMapper.put(msterDsName, slaveDsNameList);
 		}
 
 		// 创建数据源
 		if (matrixDataSourceModel.size() == 1) {
 			// 只有一个 group 的情况为单库读写分离的场景，创建读写分离数据源
-			registerReadWriteDs(matrixName, parserContext, masterDataSourceMapper, slaveDataSourceMapper);
+			registerReadWriteDs(matrixName, parserContext, masterDataSourceMapper, slaveDataSourceMapper, masterSlaveDataSourceMapper);
 		} else {
 			// TODO
 		}
@@ -216,7 +228,8 @@ public class MatrixDatasourceBeanDefinitionParser implements BeanDefinitionParse
 	 */
 	private void registerReadWriteDs(String matrixName, ParserContext parserContext,
 	                                 ManagedMap<String, RuntimeBeanReference> masterDataSourceMapper,
-	                                 ManagedMap<String, RuntimeBeanReference> slaveDataSourceMapper) {
+	                                 ManagedMap<String, RuntimeBeanReference> slaveDataSourceMapper,
+	                                 Map<String, List<String>> masterSlaveDataSourceMapper) {
 		if (masterDataSourceMapper == null || masterDataSourceMapper.size() != 1) {
 			throw new IllegalArgumentException("read/write datasource must only one master data source");
 		}
@@ -224,6 +237,7 @@ public class MatrixDatasourceBeanDefinitionParser implements BeanDefinitionParse
 		RootBeanDefinition dsBeanDefinition = new RootBeanDefinition(MasterSlaveDataSource.class);
 		dsBeanDefinition.getPropertyValues().add(MASTER_DATASOURCE_MAPPER, masterDataSourceMapper);
 		dsBeanDefinition.getPropertyValues().add(SLAVE_DATASOURCE_MAPPER, slaveDataSourceMapper);
+		dsBeanDefinition.getPropertyValues().add(MASTER_SLAVE_DATASOURCE_MAPPER, masterSlaveDataSourceMapper);
 		parserContext.getRegistry().registerBeanDefinition(matrixName, dsBeanDefinition);
 	}
 

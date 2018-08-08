@@ -15,6 +15,8 @@ import org.springframework.util.StringUtils;
  */
 public class DataSourceUtils {
 
+	private static final String NAME_APPEND = "-";
+
 	/**
 	 * 构建数据库连接字符串
 	 *
@@ -39,12 +41,27 @@ public class DataSourceUtils {
 	 * @return
 	 */
 	public static String buildDsName(String matrixName, MatrixDataSourceModel matrixDataSourceModel, MatrixAtomModel atomModel) {
-		StringBuilder result = new StringBuilder(matrixName).append("-").append(matrixDataSourceModel.getGroupName());
+		StringBuilder result = new StringBuilder(matrixName).append(NAME_APPEND).append(matrixDataSourceModel.getGroupName());
 		if (atomModel.getIsMaster()) {
-			result.append("-").append(MasterSlaveType.MASTER.name());
+			result.append(NAME_APPEND).append(MasterSlaveType.MASTER.name());
 		} else {
-			result.append("-").append(MasterSlaveType.SLAVE.name());
+			result.append(NAME_APPEND).append(MasterSlaveType.SLAVE.name());
 		}
+		return result.toString();
+	}
+
+	/**
+	 * 构建数据源名称
+	 *
+	 * @param matrixName
+	 * @param shardingKey
+	 * @param masterSlaveType
+	 * @return
+	 */
+	public static String buildDsName(String matrixName, String shardingKey, MasterSlaveType masterSlaveType) {
+		StringBuilder result = new StringBuilder(matrixName).append(NAME_APPEND).append(shardingKey);
+		if (masterSlaveType != null)
+			result.append(NAME_APPEND).append(masterSlaveType.name());
 		return result.toString();
 	}
 
@@ -56,6 +73,6 @@ public class DataSourceUtils {
 	 * @return
 	 */
 	public static String buildBeanName(String dataSourceId, String beanName) {
-		return dataSourceId + "_" + beanName;
+		return dataSourceId + NAME_APPEND + beanName;
 	}
 }
