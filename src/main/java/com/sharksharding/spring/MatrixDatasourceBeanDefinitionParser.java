@@ -1,6 +1,7 @@
 package com.sharksharding.spring;
 
 import com.alibaba.druid.pool.DruidDataSource;
+import com.alibaba.fastjson.JSONArray;
 import com.sharksharding.common.Constants;
 import com.sharksharding.common.DataSourceUtils;
 import com.sharksharding.datasource.MasterSlaveDataSource;
@@ -8,6 +9,7 @@ import com.sharksharding.datasource.interceptor.AnnotationMasterSlaveDataSourceI
 import com.sharksharding.model.MatrixAtomModel;
 import com.sharksharding.model.MatrixDataSourceMetaModel;
 import com.sharksharding.model.MatrixDataSourceModel;
+import com.sharksharding.property.PropertyHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.aop.config.AopNamespaceUtils;
@@ -26,7 +28,6 @@ import org.springframework.util.StringUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -233,29 +234,11 @@ public class MatrixDatasourceBeanDefinitionParser implements BeanDefinitionParse
 	 * @return
 	 */
 	private List<MatrixDataSourceModel> getMatrixDataSourceModel(MatrixDataSourceMetaModel matrixDataSourceMetaMode) {
-		MatrixDataSourceModel model = new MatrixDataSourceModel();
+		String configValue = PropertyHolder.getProperty(buidMatrixDataKey(matrixDataSourceMetaMode.getId()));
+		return JSONArray.parseArray(configValue, MatrixDataSourceModel.class);
+	}
 
-		MatrixAtomModel model_1 = new MatrixAtomModel();
-		model_1.setHost("127.0.0.1");
-		model_1.setPort("3306");
-		model_1.setDbName("test_master_01");
-		model_1.setUsername("root");
-		model_1.setPassword("root");
-		model_1.setParams("zeroDateTimeBehavior=convertToNull");
-		model_1.setIsMaster(true);
-
-		MatrixAtomModel model_2 = new MatrixAtomModel();
-		model_2.setHost("127.0.0.1");
-		model_2.setPort("3306");
-		model_2.setDbName("test_slave_01");
-		model_2.setUsername("root");
-		model_2.setPassword("root");
-		model_2.setParams("zeroDateTimeBehavior=convertToNull");
-		model_2.setIsMaster(false);
-
-		model.setGroupName("rwds");
-		model.setLoadBalance("random");
-		model.setAtoms(Arrays.asList(model_1, model_2));
-		return Arrays.asList(model);
+	private static String buidMatrixDataKey(String matrixName) {
+		return RESOURCE_RDBMS_MATRIX_PREFIX + "/" + matrixName;
 	}
 }

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns="http://sharksharding.com/schema/context"
+           elementFormDefault="qualified"
+           targetNamespace="http://sharksharding.com/schema/context">
+
+    <xs:element name="place-holder">
+        <xs:complexType>
+            <xs:attribute name="id" use="optional" type="xs:string" default="propertyConfigurer"/>
+            <xs:attribute name="ignore-resource-not-found" use="optional" type="xs:boolean" default="false"/>
+        </xs:complexType>
+    </xs:element>
+
+</xs:schema>

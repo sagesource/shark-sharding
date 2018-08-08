@@ -14,9 +14,10 @@ public interface Constants {
 	public static final String DEFAULT_CHARSET     = "utf-8";
 
 	// xsd element attribute
-	public static final String XSD_ID                  = "id";
-	public static final String XSD_TRANSACTION_MANAGER = "transactionManager";
-	public static final String XSD_MATRIX_ORDER        = "order";
+	public static final String XSD_ID                        = "id";
+	public static final String XSD_TRANSACTION_MANAGER       = "transactionManager";
+	public static final String XSD_MATRIX_ORDER              = "order";
+	public static final String XSD_IGNORE_RESOURCE_NOT_FOUND = "ignore-resource-not-found";
 
 	// default value
 	public static final String DEFAULT_TRANSACTION_MANAGER_NAME = "transactionManager";
@@ -29,6 +30,7 @@ public interface Constants {
 	public static final String SLAVE_DATASOURCE_MAPPER  = "slaveDataSourceMapper";
 
 	// spring bean name
+	public static final String PROPERTY_PLACE_HOLDER                          = "propertyConfigurer";
 	public static final String ANNOTATION_MASTER_SLAVE_DATASOURCE_INTERCEPTOR = "annotationReadWriteDataSourceInterceptor";
 
 	// spring aop config
@@ -49,4 +51,11 @@ public interface Constants {
 	public static final String REPOSITORY_SHARDING_DATA_SOURCE_POINTCUT_ORDER = "100";
 	public static final String ANNOTATION_MASTERSLAVE_POINTCUT_ORDER          = "200";
 	public static final String TRANSACTION_ADVISOR_ORDER                      = "300";
+
+	// matrix config zk path
+	public static final String RESOURCE_RDBMS_MATRIX_PREFIX = "/resource/RDBMS/matrix";
+
+	// spring.profiles.active
+	public static final String PROFILES_ACTIVE_TEST       = "test";
+	public static final String PROFILES_ACTIVE_PRODUCTION = "production";
 }

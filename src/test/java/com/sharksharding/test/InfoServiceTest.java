@@ -4,7 +4,6 @@ import com.sharksharding.test.service.InfoService;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.util.concurrent.CyclicBarrier;
@@ -18,7 +17,6 @@ import java.util.concurrent.CyclicBarrier;
  * </pre>
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = {"classpath*:application-testsdk.xml"})
 public class InfoServiceTest extends BaseTest {
 
 	@Autowired
@@ -129,7 +127,7 @@ public class InfoServiceTest extends BaseTest {
 			}
 		}).start();
 
-		while (true);
+		while (true) ;
 	}
 
 	/*

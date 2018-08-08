@@ -1,1 +1,2 @@
-http\://sharksharding.com/schema/datasource=com.sharksharding.spring.JdbcMatrixNamespaceHandlerSupport
+http\://sharksharding.com/schema/datasource=com.sharksharding.spring.SharkTagNamespaceHandlerSupport
+http\://sharksharding.com/schema/context=com.sharksharding.spring.SharkTagNamespaceHandlerSupport

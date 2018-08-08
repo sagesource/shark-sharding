@@ -10,9 +10,10 @@ import org.springframework.beans.factory.xml.NamespaceHandlerSupport;
  *     email       job.xueqi@outlook.com
  * </pre>
  */
-public class JdbcMatrixNamespaceHandlerSupport extends NamespaceHandlerSupport {
+public class SharkTagNamespaceHandlerSupport extends NamespaceHandlerSupport {
 	@Override
 	public void init() {
 		registerBeanDefinitionParser("matrix-datasource", new MatrixDatasourceBeanDefinitionParser());
+		registerBeanDefinitionParser("place-holder", new PlaceHolderBeanDefinitionParser());
 	}
 }
