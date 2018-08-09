@@ -19,6 +19,11 @@ public interface Constants {
 	public static final String XSD_TRANSACTION_MANAGER       = "transactionManager";
 	public static final String XSD_MATRIX_ORDER              = "order";
 	public static final String XSD_IGNORE_RESOURCE_NOT_FOUND = "ignore-resource-not-found";
+	public static final String XSD_MATRIX_POOL_CONFIGS       = "pool-configs";
+	public static final String XSD_MATRIX_POOL_CONFIG        = "pool-config";
+	public static final String XSD_MATRIX_ATOM_NAMES         = "atom-names";
+	public static final String XSD_NAME                      = "name";
+	public static final String XSD_VALUE                     = "value";
 
 	// default value
 	public static final String DEFAULT_TRANSACTION_MANAGER_NAME = "transactionManager";
@@ -30,6 +35,7 @@ public interface Constants {
 	public static final String MASTER_DATASOURCE_MAPPER       = "masterDataSourceMapper";
 	public static final String SLAVE_DATASOURCE_MAPPER        = "slaveDataSourceMapper";
 	public static final String MASTER_SLAVE_DATASOURCE_MAPPER = "masterSlaveDataSourceMapper";
+	public static final String MARTIX_NAME                    = "matrixName";
 
 	// spring bean name
 	public static final String PROPERTY_PLACE_HOLDER                          = "propertyConfigurer";

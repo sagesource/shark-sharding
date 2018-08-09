@@ -9,6 +9,10 @@ package com.sharksharding.model;
  * </pre>
  */
 public class MatrixAtomModel {
+	/**
+	 * 原子数据源名称
+	 */
+	private String  atomName;
 	// 数据库IP
 	private String  host;
 	// 数据库PORT
@@ -23,6 +27,14 @@ public class MatrixAtomModel {
 	private String  params;
 	// 主库标志位
 	private boolean isMaster;
+
+	public String getAtomName() {
+		return atomName;
+	}
+
+	public void setAtomName(String atomName) {
+		this.atomName = atomName;
+	}
 
 	public String getHost() {
 		return host;

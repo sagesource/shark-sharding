@@ -7,8 +7,9 @@ import com.sharksharding.common.DataSourceUtils;
 import com.sharksharding.datasource.MasterSlaveDataSource;
 import com.sharksharding.datasource.interceptor.AnnotationMasterSlaveDataSourceInterceptor;
 import com.sharksharding.model.MatrixAtomModel;
+import com.sharksharding.model.MatrixDataSourceGroupModel;
 import com.sharksharding.model.MatrixDataSourceMetaModel;
-import com.sharksharding.model.MatrixDataSourceModel;
+import com.sharksharding.model.MatrixPoolConfigMetaModel;
 import com.sharksharding.property.PropertyHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +28,10 @@ import org.springframework.transaction.interceptor.TransactionInterceptor;
 import org.springframework.util.StringUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -48,17 +52,12 @@ public class MatrixDatasourceBeanDefinitionParser implements BeanDefinitionParse
 	public BeanDefinition parse(Element element, ParserContext parserContext) {
 		Document appDoc = element.getOwnerDocument();
 
-		// 解析标签元素信息
-		MatrixDataSourceMetaModel matrixDataSourceMetaModel = parseMatrixDataSourceMetaModel(element);
 		// 获取连接信息
-		List<MatrixDataSourceModel> matrixDataSourceModelList = getMatrixDataSourceModel(matrixDataSourceMetaModel);
-
+		MatrixDataSourceMetaModel matrixDataSourceMetaModel = getMatrixDataSourceModel(element);
 		// 增加annotation的creator
 		AopNamespaceUtils.registerAspectJAnnotationAutoProxyCreatorIfNecessary(parserContext, element);
-
 		// 注册数据源
-		this.registerDsBeanDefinition(matrixDataSourceMetaModel, matrixDataSourceModelList, parserContext);
-
+		this.registerDsBeanDefinition(matrixDataSourceMetaModel, parserContext);
 		// 注册分库拦截器
 		// 注册读写分离拦截器
 		this.registerMasterSlaveInterceptor(matrixDataSourceMetaModel, parserContext, appDoc);
@@ -72,31 +71,24 @@ public class MatrixDatasourceBeanDefinitionParser implements BeanDefinitionParse
 
 	//.............//
 
-	/**
-	 * 转换解析数据源标签数据
-	 *
-	 * @param element
-	 * @return
-	 */
-	private MatrixDataSourceMetaModel parseMatrixDataSourceMetaModel(Element element) {
-		MatrixDataSourceMetaModel matrixDataSourceMetaModel = new MatrixDataSourceMetaModel();
-		matrixDataSourceMetaModel.setId(element.getAttribute(XSD_ID));
-		matrixDataSourceMetaModel.setTransactionManager(element.getAttribute(XSD_TRANSACTION_MANAGER));
-		return matrixDataSourceMetaModel;
-	}
 
 	/**
 	 * 注册数据源 Bean
 	 */
-	private void registerDsBeanDefinition(MatrixDataSourceMetaModel matrixDataSourceMetaModel, List<MatrixDataSourceModel> matrixDataSourceModel, ParserContext parserContext) {
+	private void registerDsBeanDefinition(MatrixDataSourceMetaModel matrixDataSourceMetaModel, ParserContext parserContext) {
 		// 存放 MASTER / SLAVE 数据源
 		ManagedMap<String, RuntimeBeanReference> masterDataSourceMapper = new ManagedMap<>();
 		ManagedMap<String, RuntimeBeanReference> slaveDataSourceMapper  = new ManagedMap<>();
 
-		String matrixName = matrixDataSourceMetaModel.getId();
 		// 创建原子数据源
+		String matrixName = matrixDataSourceMetaModel.getMatrixName();
+		// 子数据源组列表
+		List<MatrixDataSourceGroupModel> matrixDataSourceGroupList = matrixDataSourceMetaModel.getMatrixDataSourceGroupList();
+		// Master 数据源对应的 Slave 数据源名称列表
 		Map<String, List<String>> masterSlaveDataSourceMapper = new LinkedHashMap<>();
-		for (MatrixDataSourceModel dataSourceModel : matrixDataSourceModel) {
+		// atom 数据源对应的数据源配置
+		Map<String, MatrixPoolConfigMetaModel> atomDataSourcePoolConfig = matrixDataSourceMetaModel.getAtomDataSourcePoolConfig();
+		for (MatrixDataSourceGroupModel dataSourceModel : matrixDataSourceGroupList) {
 			// 从库数据源索引位置，为支持一主多从场景
 			int          slaveDbIndex    = 0;
 			String       msterDsName     = "";
@@ -106,11 +98,7 @@ public class MatrixDatasourceBeanDefinitionParser implements BeanDefinitionParse
 
 				// 连接池配置
 				RootBeanDefinition  dsBeanDefinition = new RootBeanDefinition(DruidDataSource.class);
-				Map<String, String> dsPoolParams     = new LinkedHashMap<>();
-				dsPoolParams.put("driverClassName", DEFAULT_DB_DRIVER);
-				dsPoolParams.put("url", url);
-				dsPoolParams.put("username", matrixAtomModel.getUsername());
-				dsPoolParams.put("password", matrixAtomModel.getPassword());
+				Map<String, Object> dsPoolParams     = DataSourceUtils.buildPoolConfig(matrixAtomModel, atomDataSourcePoolConfig);
 				dsBeanDefinition.getPropertyValues().addPropertyValues(dsPoolParams);
 				dsBeanDefinition.setInitMethodName(DEFAULT_INIT_METHOD);
 				dsBeanDefinition.setDestroyMethodName(DEFAULT_DESTORY_METHOD);
@@ -136,11 +124,12 @@ public class MatrixDatasourceBeanDefinitionParser implements BeanDefinitionParse
 		}
 
 		// 创建数据源
-		if (matrixDataSourceModel.size() == 1) {
+		if (matrixDataSourceGroupList.size() == 1) {
 			// 只有一个 group 的情况为单库读写分离的场景，创建读写分离数据源
 			registerReadWriteDs(matrixName, parserContext, masterDataSourceMapper, slaveDataSourceMapper, masterSlaveDataSourceMapper);
 		} else {
-			// TODO
+			// 注册分库读写分离数据源
+			registerRepositoryShardingDs(matrixName, parserContext, masterDataSourceMapper, slaveDataSourceMapper, masterSlaveDataSourceMapper);
 		}
 	}
 
@@ -149,10 +138,11 @@ public class MatrixDatasourceBeanDefinitionParser implements BeanDefinitionParse
 	 *
 	 * @param matrixDataSourceMetaModel
 	 * @param parserContext
+	 * @param appDoc
 	 */
 	private void registerMasterSlaveInterceptor(MatrixDataSourceMetaModel matrixDataSourceMetaModel, ParserContext parserContext, Document appDoc) {
 		// 数据源名称
-		String             matrixName         = matrixDataSourceMetaModel.getId();
+		String             matrixName         = matrixDataSourceMetaModel.getMatrixName();
 		RootBeanDefinition rootBeanDefinition = new RootBeanDefinition(AnnotationMasterSlaveDataSourceInterceptor.class);
 		parserContext.getRegistry().registerBeanDefinition(DataSourceUtils.buildBeanName(matrixName, ANNOTATION_MASTER_SLAVE_DATASOURCE_INTERCEPTOR), rootBeanDefinition);
 		// 创建 xml 元素
@@ -162,7 +152,7 @@ public class MatrixDatasourceBeanDefinitionParser implements BeanDefinitionParse
 
 	private Element buildMasterSlaveAopConfigElmt(MatrixDataSourceMetaModel matrixDataSourceMetaModel, Document appDoc) {
 		// 数据源名称
-		String matrixName = matrixDataSourceMetaModel.getId();
+		String matrixName = matrixDataSourceMetaModel.getMatrixName();
 
 		// 组装 Spring AOP Config 标签
 		Element annotationMasterSlaveAopConfigElmt = appDoc.createElementNS(AOP_NAMESPACE_URI, CONFIG);
@@ -242,14 +232,122 @@ public class MatrixDatasourceBeanDefinitionParser implements BeanDefinitionParse
 	}
 
 	/**
+	 * 创建分库读写数据源
+	 *
+	 * @param matrixName
+	 * @param parserContext
+	 * @param masterDataSourceMapper
+	 * @param slaveDataSourceMapper
+	 * @param masterSlaveDataSourceMapper
+	 */
+	private void registerRepositoryShardingDs(String matrixName, ParserContext parserContext,
+	                                          ManagedMap<String, RuntimeBeanReference> masterDataSourceMapper,
+	                                          ManagedMap<String, RuntimeBeanReference> slaveDataSourceMapper,
+	                                          Map<String, List<String>> masterSlaveDataSourceMapper) {
+		if (masterDataSourceMapper == null) {
+			throw new IllegalArgumentException("repository sharding datasource masterDataSourceMapper must not null");
+		}
+		RootBeanDefinition dsBeanDefinition = new RootBeanDefinition(MasterSlaveDataSource.class);
+		dsBeanDefinition.getPropertyValues().add(MASTER_DATASOURCE_MAPPER, masterDataSourceMapper);
+		dsBeanDefinition.getPropertyValues().add(SLAVE_DATASOURCE_MAPPER, slaveDataSourceMapper);
+		dsBeanDefinition.getPropertyValues().add(MASTER_SLAVE_DATASOURCE_MAPPER, masterSlaveDataSourceMapper);
+		dsBeanDefinition.getPropertyValues().add(MARTIX_NAME, matrixName);
+		parserContext.getRegistry().registerBeanDefinition(matrixName, dsBeanDefinition);
+	}
+
+	/**
 	 * 获取连接配置对象
 	 *
-	 * @param matrixDataSourceMetaMode
+	 * @param element
 	 * @return
 	 */
-	private List<MatrixDataSourceModel> getMatrixDataSourceModel(MatrixDataSourceMetaModel matrixDataSourceMetaMode) {
-		String configValue = PropertyHolder.getProperty(buidMatrixDataKey(matrixDataSourceMetaMode.getId()));
-		return JSONArray.parseArray(configValue, MatrixDataSourceModel.class);
+	private MatrixDataSourceMetaModel getMatrixDataSourceModel(Element element) {
+		// 获取复合数据源名称
+		String matrixName = element.getAttribute(XSD_ID);
+		// 获取事务管理器名称
+		String transactionManager = element.getAttribute(XSD_TRANSACTION_MANAGER);
+		// 数据源 group 列表
+		String                           configValue               = PropertyHolder.getProperty(buidMatrixDataKey(matrixName));
+		List<MatrixDataSourceGroupModel> matrixDataSourceGroupList = JSONArray.parseArray(configValue, MatrixDataSourceGroupModel.class);
+
+		// 解析数据源配置
+		Map<String, MatrixPoolConfigMetaModel> atomDataSourcePoolConfig = new LinkedHashMap<>();
+		NodeList                               nodeList                 = element.getChildNodes();
+		if (nodeList != null && nodeList.getLength() > 0) {
+			for (int i = 0; i < nodeList.getLength(); i++) {
+				Node node = nodeList.item(i);
+				if (node != null && node instanceof Element) {
+					Element ele = (Element) node;
+					if (ele.getTagName().endsWith(XSD_MATRIX_POOL_CONFIGS)) {
+						// pool-configs 标签解析
+						atomDataSourcePoolConfig = parseMatrixPoolConfig(ele);
+					}
+				}
+			}
+		}
+
+		// 数据源配置元素 Model
+		MatrixDataSourceMetaModel matrixDataSourceMetaModel = new MatrixDataSourceMetaModel();
+		matrixDataSourceMetaModel.setMatrixName(matrixName);
+		matrixDataSourceMetaModel.setTransactionManager(transactionManager);
+		matrixDataSourceMetaModel.setMatrixDataSourceGroupList(matrixDataSourceGroupList);
+		matrixDataSourceMetaModel.setAtomDataSourcePoolConfig(atomDataSourcePoolConfig);
+		return matrixDataSourceMetaModel;
+	}
+
+	/**
+	 * pool-configs 标签解析
+	 *
+	 * @param element
+	 * @return
+	 */
+	private Map<String, MatrixPoolConfigMetaModel> parseMatrixPoolConfig(Element element) {
+		Map<String, MatrixPoolConfigMetaModel> result = new LinkedHashMap<>();
+
+		NodeList nodeList = element.getChildNodes();
+		if (nodeList != null && nodeList.getLength() > 0) {
+			for (int i = 0; i < nodeList.getLength(); i++) {
+				Node node = nodeList.item(i);
+				if (node != null && node instanceof Element) {
+					Element ele = (Element) node;
+					if (ele.getTagName().endsWith(XSD_MATRIX_POOL_CONFIG)) {
+						String                    atomNames                 = ele.getAttribute(XSD_MATRIX_ATOM_NAMES);
+						MatrixPoolConfigMetaModel matrixPoolConfigMetaModel = parsePoolConfig(ele);
+
+						String[] atomNameArray = atomNames.split(",");
+						for (String atomName : atomNameArray) {
+							if (result.get(atomName) != null)
+								throw new IllegalArgumentException(MessageFormat.format("atomName:{0} pool config already exist.", atomName));
+							result.put(atomName, matrixPoolConfigMetaModel);
+						}
+					}
+				}
+			}
+		}
+
+		return result;
+	}
+
+	/**
+	 * 解析 pool-config 标签
+	 *
+	 * @param element
+	 * @return
+	 */
+	private MatrixPoolConfigMetaModel parsePoolConfig(Element element) {
+		MatrixPoolConfigMetaModel matrixPoolConfigMetaModel = new MatrixPoolConfigMetaModel();
+		NodeList                  nodeList                  = element.getChildNodes();
+		if (nodeList != null && nodeList.getLength() > 0) {
+			for (int i = 0; i < nodeList.getLength(); i++) {
+				Node node = nodeList.item(i);
+				if (node != null && node instanceof Element) {
+					Element ele = (Element) node;
+					matrixPoolConfigMetaModel.addProperty(ele.getAttribute(XSD_NAME), ele.getAttribute(XSD_VALUE));
+				}
+			}
+		}
+
+		return matrixPoolConfigMetaModel;
 	}
 
 	private static String buidMatrixDataKey(String matrixName) {

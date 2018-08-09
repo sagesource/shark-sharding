@@ -34,6 +34,18 @@
 
     <!-- 创建数据源 -->
     <shark-sharding:matrix-datasource id="TestSDK" transactionManager="${/resource/RDBMS/matrix/TestSDK}">
-
+        <shark-sharding:pool-configs>
+            <shark-sharding:pool-config atom-names="*">
+                <shark-sharding:property name="initialSize" value="3"/>
+                <shark-sharding:property name="minIdle" value="3"/>
+                <shark-sharding:property name="maxActive" value="15"/>
+                <shark-sharding:property name="maxWait" value="5000"/>
+                <shark-sharding:property name="timeBetweenEvictionRunsMillis" value="90000"/>
+                <shark-sharding:property name="minEvictableIdleTimeMillis" value="1800000"/>
+                <shark-sharding:property name="testOnBorrow" value="false"/>
+                <shark-sharding:property name="testOnReturn" value="false"/>
+                <shark-sharding:property name="testWhileIdle" value="true"/>
+            </shark-sharding:pool-config>
+        </shark-sharding:pool-configs>
     </shark-sharding:matrix-datasource>
 </beans>

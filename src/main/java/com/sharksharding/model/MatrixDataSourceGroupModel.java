@@ -10,7 +10,7 @@ import java.util.List;
  *     email       job.xueqi@outlook.com
  * </pre>
  */
-public class MatrixDataSourceModel {
+public class MatrixDataSourceGroupModel {
 	// 数据源组名称，分库时为分库shardkey
 	private String                groupName;
 	// 读写分离 LB 策略
