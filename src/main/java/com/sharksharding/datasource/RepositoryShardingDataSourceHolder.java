@@ -27,7 +27,7 @@ public class RepositoryShardingDataSourceHolder {
 	 */
 	public static void putRepoShardingKey(String repoShardingKey) {
 		if (LOGGER.isDebugEnabled()) {
-			LOGGER.info("set repository sharding key holder: {}", repoShardingKey);
+			LOGGER.debug("set repository sharding key holder: {}", repoShardingKey);
 		}
 		repoShardingKeyHolder.set(repoShardingKey);
 	}

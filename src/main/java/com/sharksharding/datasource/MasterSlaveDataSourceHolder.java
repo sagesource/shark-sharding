@@ -23,7 +23,7 @@ public class MasterSlaveDataSourceHolder {
 	// 设置数据源
 	public static void putDataSource(MasterSlaveType dataSource) {
 		if (LOGGER.isDebugEnabled())
-			LOGGER.info("set master/slave thread holder:{}", dataSource);
+			LOGGER.debug("set master/slave thread holder:{}", dataSource);
 		holder.set(dataSource);
 	}
 

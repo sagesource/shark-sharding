@@ -5,6 +5,7 @@ import com.sharksharding.enums.MasterSlaveType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.support.ManagedMap;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 
@@ -42,6 +43,11 @@ public class RepositoryShardingDataSource extends AbstarctDataSourceMBean {
 		// 获取当前线程上下文的读写分离数据源, 默认为 MASTER 的数据源
 		MasterSlaveType masterSlaveType = MasterSlaveDataSourceHolder.getDataSource();
 		String          shardingKey     = RepositoryShardingDataSourceHolder.getRepoShardingKey();
+
+		// 判断 shardingKey 是否存在
+		if (StringUtils.isEmpty(shardingKey)) {
+			throw new IllegalArgumentException("repository sharding key is null");
+		}
 
 		// 配置 Master 数据源名称
 		String masterDsKey = DataSourceUtils.buildDsName(this.matrixName, shardingKey, MasterSlaveType.MASTER);

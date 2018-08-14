@@ -15,15 +15,17 @@ public interface Constants {
 	public static final String NUM_ZERO            = "0";
 
 	// xsd element attribute
-	public static final String XSD_ID                        = "id";
-	public static final String XSD_TRANSACTION_MANAGER       = "transactionManager";
-	public static final String XSD_MATRIX_ORDER              = "order";
-	public static final String XSD_IGNORE_RESOURCE_NOT_FOUND = "ignore-resource-not-found";
-	public static final String XSD_MATRIX_POOL_CONFIGS       = "pool-configs";
-	public static final String XSD_MATRIX_POOL_CONFIG        = "pool-config";
-	public static final String XSD_MATRIX_ATOM_NAMES         = "atom-names";
-	public static final String XSD_NAME                      = "name";
-	public static final String XSD_VALUE                     = "value";
+	public static final String XSD_ID                         = "id";
+	public static final String XSD_TRANSACTION_MANAGER        = "transactionManager";
+	public static final String XSD_MATRIX_ORDER               = "order";
+	public static final String XSD_IGNORE_RESOURCE_NOT_FOUND  = "ignore-resource-not-found";
+	public static final String XSD_MATRIX_POOL_CONFIGS        = "pool-configs";
+	public static final String XSD_MATRIX_POOL_CONFIG         = "pool-config";
+	public static final String XSD_MATRIX_ATOM_NAMES          = "atom-names";
+	public static final String XSD_NAME                       = "name";
+	public static final String XSD_VALUE                      = "value";
+	public static final String XSD_MATRIX_REPOSITORY_SHARDING = "repository-sharding";
+	public static final String XSD_MATRIX_POINTCUT_EXPRESSION = "pointcut-expression";
 
 	// default value
 	public static final String DEFAULT_TRANSACTION_MANAGER_NAME = "transactionManager";
@@ -40,6 +42,7 @@ public interface Constants {
 	// spring bean name
 	public static final String PROPERTY_PLACE_HOLDER                          = "propertyConfigurer";
 	public static final String ANNOTATION_MASTER_SLAVE_DATASOURCE_INTERCEPTOR = "annotationReadWriteDataSourceInterceptor";
+	public static final String REPOSITORY_SHARDING_DATASOURCE_INTERCEPTOR     = "repositoryShardingDataSourceInterceptor";
 
 	// spring aop config
 	public static final String AOP_NAMESPACE_URI                            = "http://www.springframework.org/schema/aop";

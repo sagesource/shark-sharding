@@ -23,7 +23,8 @@ public class MatrixDataSourceMetaModel {
 	// 连接池配置
 	private Map<String, MatrixPoolConfigMetaModel> atomDataSourcePoolConfig;
 	// 分表配置 Model
-	// 分库配置 Model
+	// 分库配置 pointcut expression
+	private String                                 repositoryShardingPointcut;
 
 
 	public String getMatrixName() {
@@ -56,5 +57,13 @@ public class MatrixDataSourceMetaModel {
 
 	public void setAtomDataSourcePoolConfig(Map<String, MatrixPoolConfigMetaModel> atomDataSourcePoolConfig) {
 		this.atomDataSourcePoolConfig = atomDataSourcePoolConfig;
+	}
+
+	public String getRepositoryShardingPointcut() {
+		return repositoryShardingPointcut;
+	}
+
+	public void setRepositoryShardingPointcut(String repositoryShardingPointcut) {
+		this.repositoryShardingPointcut = repositoryShardingPointcut;
 	}
 }

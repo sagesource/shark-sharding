@@ -33,7 +33,7 @@ public class AnnotationMasterSlaveDataSourceInterceptor implements MethodInterce
 		if (masterSlaveAnno != null) {
 			MasterSlaveDataSourceHolder.putDataSource(masterSlaveAnno.type());
 			if (LOGGER.isDebugEnabled())
-				LOGGER.debug("method:{}, choise master / slave :{}", masterSlaveAnno.type(), realMethod);
+				LOGGER.debug("method:{}, choise master / slave :{}", realMethod, masterSlaveAnno.type());
 		}
 
 		// 执行逻辑

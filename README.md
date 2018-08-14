@@ -29,3 +29,9 @@ Shark Sharding 是基于 Spring MyBatis 的分库分表 读写分离插件
         ]
     }
 ]
+
+相关概念：
+matrixDataSource：复合数据源，逻辑概念，包括所有实际的数据源信息。
+matrixName：复合数据源名称
+groupName：数据源组的名称，里面包含了一个数据库的数据源信息。只有一个的时候，默认为 rwds，对应单库的读写分离。如果有多个，代表分库场景，分库时为分库shardkey。
+atom：实际的数据源信息。创建数据源对象是，Bean Name：matrixName+"_" + groupName + MASTER/SLAVE(index)

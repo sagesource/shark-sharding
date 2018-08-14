@@ -26,7 +26,7 @@
     <!-- 分库配置 -->
     <xs:element name="repository-sharding">
         <xs:complexType>
-            <xs:attribute name="strategies-package" type="xs:string"/>
+            <xs:attribute name="pointcut-expression" type="xs:string"/>
             <xs:attribute name="order" type="xs:string"/>
         </xs:complexType>
     </xs:element>
