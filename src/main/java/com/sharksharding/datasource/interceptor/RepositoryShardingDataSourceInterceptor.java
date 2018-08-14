@@ -1,8 +1,8 @@
 package com.sharksharding.datasource.interceptor;
 
 import com.sharksharding.common.Utils;
-import com.sharksharding.datasource.RepositoryShardingDataSourceHolder;
-import com.sharksharding.datasource.annotation.RepositorySharding;
+import com.sharksharding.common.holder.RepositoryShardingDataSourceHolder;
+import com.sharksharding.common.annotation.RepositorySharding;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.slf4j.Logger;

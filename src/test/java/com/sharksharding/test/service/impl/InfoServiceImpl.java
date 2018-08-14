@@ -1,6 +1,6 @@
 package com.sharksharding.test.service.impl;
 
-import com.sharksharding.datasource.annotation.MasterSlave;
+import com.sharksharding.common.annotation.MasterSlave;
 import com.sharksharding.enums.MasterSlaveType;
 import com.sharksharding.test.entity.InfoEntity;
 import com.sharksharding.test.entity.LogEntity;

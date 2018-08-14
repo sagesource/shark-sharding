@@ -1,4 +1,4 @@
-package com.sharksharding.datasource.annotation;
+package com.sharksharding.common.annotation;
 
 import java.lang.annotation.*;
 

@@ -1,4 +1,4 @@
-package com.sharksharding.datasource;
+package com.sharksharding.common.holder;
 
 import com.sharksharding.enums.MasterSlaveType;
 import org.slf4j.Logger;

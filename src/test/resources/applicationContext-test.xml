@@ -68,7 +68,8 @@
         <property name="annotationClass" value="org.springframework.stereotype.Repository"/>
     </bean>
     <!-- 创建 ShardingDbSDK 数据源 -->
-    <shark-sharding:matrix-datasource id="ShardingDbSDK" transactionManager="ShardingDbSDKTransactionManager">
+    <shark-sharding:matrix-datasource id="ShardingDbSDK" transactionManager="ShardingDbSDKTransactionManager"
+                                      myBatisSqlSessionFactory="ShardingDbSDKSqlSessionFactory">
         <shark-sharding:pool-configs>
             <shark-sharding:pool-config atom-names="*">
                 <shark-sharding:property name="initialSize" value="3"/>
@@ -82,7 +83,8 @@
                 <shark-sharding:property name="testWhileIdle" value="true"/>
             </shark-sharding:pool-config>
         </shark-sharding:pool-configs>
-        <shark-sharding:repository-sharding pointcut-expression="execution(* com.sharksharding.test.service.impl.sharding..*.*(..))"/>
+        <shark-sharding:repository-sharding
+                pointcut-expression="execution(* com.sharksharding.test.service.impl.sharding..*.*(..))"/>
     </shark-sharding:matrix-datasource>
 
 </beans>

@@ -1,7 +1,7 @@
 package com.sharksharding.test.service.impl.sharding;
 
-import com.sharksharding.datasource.annotation.MasterSlave;
-import com.sharksharding.datasource.annotation.RepositorySharding;
+import com.sharksharding.common.annotation.MasterSlave;
+import com.sharksharding.common.annotation.RepositorySharding;
 import com.sharksharding.enums.MasterSlaveType;
 import com.sharksharding.test.entity.OrderEntity;
 import com.sharksharding.test.repository.shardingdbsdk.OrderRepository;

@@ -2,6 +2,8 @@ package com.sharksharding.datasource;
 
 import com.sharksharding.common.DataSourceUtils;
 import com.sharksharding.enums.MasterSlaveType;
+import com.sharksharding.common.holder.MasterSlaveDataSourceHolder;
+import com.sharksharding.common.holder.RepositoryShardingDataSourceHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.support.ManagedMap;

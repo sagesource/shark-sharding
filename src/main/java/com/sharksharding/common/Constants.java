@@ -49,7 +49,7 @@ public interface Constants {
 	public static final String ANNOTATION_MASTER_SLAVE_DATA_SOURCE_POINTCUT = "annotationMasterSlaveDataSourcePointcut";
 	public static final String REPOSITORY_SHARDING_DATA_SOURCE_POINTCUT     = "repositoryShardingDataSourcePointcut";
 	public static final String TABLE_SHARDING_DATA_SOURCE_POINTCUT          = "tableShardingDataSourcePointcut";
-	public static final String MASTERSLAVE_POINTCUT_EXPRESSION              = "@annotation(com.sharksharding.datasource.annotation.MasterSlave)";
+	public static final String MASTERSLAVE_POINTCUT_EXPRESSION              = "@annotation(com.sharksharding.common.annotation.MasterSlave)";
 	public static final String EXPRESSION                                   = "expression";
 	public static final String ADVICE_REF                                   = "advice-ref";
 	public static final String POINTCUT_REF                                 = "pointcut-ref";
