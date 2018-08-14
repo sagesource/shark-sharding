@@ -63,7 +63,12 @@ public class RepositoryShardingDataSource extends AbstarctDataSourceMBean {
 		} else {
 			// 根据 master 数据源获取 slave 列表
 			List<String> slaveNameList = super.masterSlaveDataSourceMapper.get(masterDsKey);
-			return selectorSlaveDsName(slaveNameList);
+			String       slaveDsKey    = selectorSlaveDsName(slaveNameList);
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("choose sharding {} slave datasource {}", shardingKey, slaveDsKey);
+			}
+
+			return slaveDsKey;
 		}
 	}
 

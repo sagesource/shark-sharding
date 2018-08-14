@@ -44,7 +44,7 @@ public class InfoServiceImpl implements InfoService {
 
 	@Override
 	@Transactional(value = "TestSDKTransactionManager")
-	@MasterSlave
+	@MasterSlave(type = MasterSlaveType.MASTER)
 	public void saveInfoDefault() {
 		InfoEntity infoEntity = saveInfoEntity();
 		LOGGER.warn("====saveInfoDefault====id:" + infoEntity.getId());
