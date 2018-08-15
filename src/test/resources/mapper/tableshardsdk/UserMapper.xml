@@ -25,9 +25,12 @@
     <select id="selectByUserId" resultMap="BaseResultMap">
         SELECT
         <include refid="Base_Column_List"/>
-        FROM t_order_$[user_sharding_key]$ WHERE user_id=#{userId,jdbcType=VARCHAR }
+        FROM t_user_$[user_sharding_key]$ WHERE user_id=#{userId,jdbcType=VARCHAR }
     </select>
 
+    <select id="selectByJoin" resultType="map">
+        SELECT t_user_$[user_sharding_key]$.*,t_dict.key,t_dict.value FROM t_user_$[user_sharding_key]$, t_dict WHERE t_user_$[user_sharding_key]$.user_id=t_dict.key
+    </select>
 </mapper>
   
 

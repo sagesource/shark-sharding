@@ -57,7 +57,11 @@ public class MasterSlaveDataSource extends AbstarctDataSourceMBean {
 		} else {
 			// 根据 master 数据源获取 slave 列表
 			List<String> slaveNameList = super.masterSlaveDataSourceMapper.get(defaultMasterDsName);
-			return selectorSlaveDsName(slaveNameList);
+			String       slaveDsKey    = selectorSlaveDsName(slaveNameList);
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("choose slave datasource key:{}", slaveDsKey);
+			}
+			return slaveDsKey;
 		}
 	}
 }

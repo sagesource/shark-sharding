@@ -18,8 +18,47 @@ public class UserServiceTest extends BaseTest {
 	private UserService userService;
 
 	@Test
-	public void saveInfoNoTransaction_test() {
-		userService.saveInfoNoTransaction();
+	public void saveUserNoTransaction_test() {
+		userService.saveUserNoTransaction();
 	}
 
+	@Test
+	public void saveUserDefault_test() {
+		userService.saveUserDefault();
+	}
+
+	@Test
+	public void findUserNoTransactionNonMS_test() {
+		userService.findUserNoTransactionNonMS();
+	}
+
+	@Test
+	public void findUserNoTransactionByMaster_test() {
+		userService.findUserNoTransactionByMaster();
+	}
+
+	@Test
+	public void findUserNoTransactionBySlave_test() {
+		userService.findUserNoTransactionBySlave();
+	}
+
+	@Test
+	public void findUserByTransaction_test() {
+		userService.findUserByTransaction();
+	}
+
+	@Test
+	public void saveMultiNoTransaction_test() {
+		userService.saveMultiNoTransaction();
+	}
+
+	@Test
+	public void saveMultiByTransaction_test() {
+		userService.saveMultiByTransaction();
+	}
+
+	@Test
+	public void findMultiByJoin_test() {
+		userService.findMultiByJoin();
+	}
 }
