@@ -1,4 +1,4 @@
-package com.sharksharding.enums;
+package com.sharksharding.common.enums;
 
 /**
  * <p>数据源类型枚举</p>

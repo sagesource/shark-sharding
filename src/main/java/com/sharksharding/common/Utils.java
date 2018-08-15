@@ -1,6 +1,7 @@
 package com.sharksharding.common;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.context.expression.BeanFactoryResolver;
 import org.springframework.expression.ExpressionParser;
@@ -47,5 +48,13 @@ public class Utils {
 		}
 
 		return ep.parseExpression(key).getValue(context);
+	}
+
+	public static String trimSql(String sql) {
+		Assert.hasText(sql);
+		String targetSql = StringUtils.replace(sql, "\n", " ");
+		targetSql = StringUtils.replace(targetSql, "\t", " ");
+		targetSql = targetSql.replaceAll(" +", " ");
+		return targetSql.trim();
 	}
 }

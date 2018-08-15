@@ -8,16 +8,20 @@ import com.sharksharding.datasource.MasterSlaveDataSource;
 import com.sharksharding.datasource.RepositoryShardingDataSource;
 import com.sharksharding.datasource.interceptor.AnnotationMasterSlaveDataSourceInterceptor;
 import com.sharksharding.datasource.interceptor.RepositoryShardingDataSourceInterceptor;
+import com.sharksharding.datasource.interceptor.TableShardingDataSourceInterceptor;
 import com.sharksharding.model.MatrixAtomModel;
 import com.sharksharding.model.MatrixDataSourceGroupModel;
 import com.sharksharding.model.MatrixDataSourceMetaModel;
 import com.sharksharding.model.MatrixPoolConfigMetaModel;
+import com.sharksharding.mybatis.TableShardingPlugin;
 import com.sharksharding.property.PropertyHolder;
+import org.apache.ibatis.plugin.Interceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.aop.config.AopNamespaceUtils;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.RuntimeBeanReference;
+import org.springframework.beans.factory.support.ManagedArray;
 import org.springframework.beans.factory.support.ManagedMap;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.beans.factory.xml.BeanDefinitionParser;
@@ -56,16 +60,25 @@ public class MatrixDatasourceBeanDefinitionParser implements BeanDefinitionParse
 
 		// 获取连接信息
 		MatrixDataSourceMetaModel matrixDataSourceMetaModel = getMatrixDataSourceModel(element);
+
 		// 增加annotation的creator
 		AopNamespaceUtils.registerAspectJAnnotationAutoProxyCreatorIfNecessary(parserContext, element);
+
 		// 注册数据源
 		this.registerDsBeanDefinition(matrixDataSourceMetaModel, parserContext);
+
 		// 注册分库拦截器
 		if (!StringUtils.isEmpty(matrixDataSourceMetaModel.getRepositoryShardingPointcut()))
 			this.registerRepositoryShardingInterceptor(matrixDataSourceMetaModel, parserContext, appDoc);
+
 		// 注册读写分离拦截器
 		this.registerMasterSlaveInterceptor(matrixDataSourceMetaModel, parserContext, appDoc);
+
 		// 注册分表拦截器
+		if (!StringUtils.isEmpty(matrixDataSourceMetaModel.getTableShardingPointcut())) {
+			this.registerTableShardingInterceptor(matrixDataSourceMetaModel, parserContext, appDoc);
+		}
+
 		// 注册事务管理器
 		this.registerTransaction(matrixDataSourceMetaModel, parserContext);
 
@@ -74,7 +87,6 @@ public class MatrixDatasourceBeanDefinitionParser implements BeanDefinitionParse
 
 
 	//.............//
-
 
 	/**
 	 * 注册数据源 Bean
@@ -138,127 +150,6 @@ public class MatrixDatasourceBeanDefinitionParser implements BeanDefinitionParse
 	}
 
 	/**
-	 * 创建分库拦截器
-	 *
-	 * @param matrixDataSourceMetaModel
-	 * @param parserContext
-	 * @param appDoc
-	 */
-	private void registerRepositoryShardingInterceptor(MatrixDataSourceMetaModel matrixDataSourceMetaModel, ParserContext parserContext, Document appDoc) {
-		// 数据源名称
-		String matrixName = matrixDataSourceMetaModel.getMatrixName();
-
-		RootBeanDefinition repositoryShardingDataSourceInterceptor = new RootBeanDefinition(RepositoryShardingDataSourceInterceptor.class);
-		parserContext.getRegistry().registerBeanDefinition(DataSourceUtils.buildBeanName(matrixName, REPOSITORY_SHARDING_DATASOURCE_INTERCEPTOR), repositoryShardingDataSourceInterceptor);
-
-		// 创建 xml 元素
-		BeanDefinitionParserDelegate beanDefDelegate = parserContext.getDelegate();
-		beanDefDelegate.parseCustomElement(buildRepositoryShardingAopConfigElmt(matrixDataSourceMetaModel, appDoc));
-	}
-
-	/**
-	 * build RepositorySharding aop config element
-	 *
-	 * @param matrixDataSourceMetaModel
-	 * @param appDoc
-	 * @return
-	 */
-	private Element buildRepositoryShardingAopConfigElmt(MatrixDataSourceMetaModel matrixDataSourceMetaModel, Document appDoc) {
-		// 数据源名称
-		String matrixName = matrixDataSourceMetaModel.getMatrixName();
-
-		Element repositoryShardingAopConfigElmt = appDoc.createElementNS(AOP_NAMESPACE_URI, CONFIG);
-		Element repositoryShardingPointcutChild = appDoc.createElementNS(AOP_NAMESPACE_URI, POINTCUT);
-		repositoryShardingPointcutChild.setAttribute(XSD_ID,
-				DataSourceUtils.buildBeanName(matrixName, REPOSITORY_SHARDING_DATA_SOURCE_POINTCUT));
-		repositoryShardingPointcutChild.setAttribute(EXPRESSION, matrixDataSourceMetaModel.getRepositoryShardingPointcut());
-		repositoryShardingAopConfigElmt.appendChild(repositoryShardingPointcutChild);
-
-		Element repositoryShardingAdvisorChild = appDoc.createElementNS(AOP_NAMESPACE_URI, ADVISOR);
-		repositoryShardingAdvisorChild.setAttribute(POINTCUT_REF,
-				DataSourceUtils.buildBeanName(matrixName, REPOSITORY_SHARDING_DATA_SOURCE_POINTCUT));
-		repositoryShardingAdvisorChild.setAttribute(ADVICE_REF,
-				DataSourceUtils.buildBeanName(matrixName, REPOSITORY_SHARDING_DATASOURCE_INTERCEPTOR));
-		repositoryShardingAdvisorChild.setAttribute(XSD_MATRIX_ORDER, REPOSITORY_SHARDING_DATA_SOURCE_POINTCUT_ORDER);
-		repositoryShardingAopConfigElmt.appendChild(repositoryShardingAdvisorChild);
-		return repositoryShardingAopConfigElmt;
-	}
-
-	/**
-	 * 创建主从数据源拦截器
-	 *
-	 * @param matrixDataSourceMetaModel
-	 * @param parserContext
-	 * @param appDoc
-	 */
-	private void registerMasterSlaveInterceptor(MatrixDataSourceMetaModel matrixDataSourceMetaModel, ParserContext parserContext, Document appDoc) {
-		if (!parserContext.getRegistry().isBeanNameInUse(ANNOTATION_MASTER_SLAVE_DATASOURCE_INTERCEPTOR)) {
-
-			RootBeanDefinition rootBeanDefinition = new RootBeanDefinition(AnnotationMasterSlaveDataSourceInterceptor.class);
-			parserContext.getRegistry().registerBeanDefinition(ANNOTATION_MASTER_SLAVE_DATASOURCE_INTERCEPTOR, rootBeanDefinition);
-			// 创建 xml 元素
-			BeanDefinitionParserDelegate beanDefDelegate = parserContext.getDelegate();
-			beanDefDelegate.parseCustomElement(buildMasterSlaveAopConfigElmt(matrixDataSourceMetaModel, appDoc));
-			
-		}
-	}
-
-	private Element buildMasterSlaveAopConfigElmt(MatrixDataSourceMetaModel matrixDataSourceMetaModel, Document appDoc) {
-		// 组装 Spring AOP Config 标签
-		Element annotationMasterSlaveAopConfigElmt = appDoc.createElementNS(AOP_NAMESPACE_URI, CONFIG);
-
-		// 切面表达式元素
-		Element annotationMasterSlavePointcutChild = appDoc.createElementNS(AOP_NAMESPACE_URI, POINTCUT);
-		annotationMasterSlavePointcutChild.setAttribute(XSD_ID, ANNOTATION_MASTER_SLAVE_DATA_SOURCE_POINTCUT);
-		annotationMasterSlavePointcutChild.setAttribute(EXPRESSION, MASTERSLAVE_POINTCUT_EXPRESSION);
-		annotationMasterSlaveAopConfigElmt.appendChild(annotationMasterSlavePointcutChild);
-
-		// advisor元素
-		Element annotationMasterSlaveAdvisorChild = appDoc.createElementNS(AOP_NAMESPACE_URI, ADVISOR);
-		annotationMasterSlaveAdvisorChild.setAttribute(POINTCUT_REF, ANNOTATION_MASTER_SLAVE_DATA_SOURCE_POINTCUT);
-		annotationMasterSlaveAdvisorChild.setAttribute(ADVICE_REF, ANNOTATION_MASTER_SLAVE_DATASOURCE_INTERCEPTOR);
-		annotationMasterSlaveAdvisorChild.setAttribute(XSD_MATRIX_ORDER, ANNOTATION_MASTERSLAVE_POINTCUT_ORDER);
-		annotationMasterSlaveAopConfigElmt.appendChild(annotationMasterSlaveAdvisorChild);
-		return annotationMasterSlaveAopConfigElmt;
-	}
-
-	/**
-	 * 注册事务配置
-	 *
-	 * @param matrixDataSourceMetaModel
-	 * @param parserContext
-	 */
-	private void registerTransaction(MatrixDataSourceMetaModel matrixDataSourceMetaModel, ParserContext parserContext) {
-		String transactionManager = matrixDataSourceMetaModel.getTransactionManager();
-		if (!StringUtils.isEmpty(transactionManager)) {
-			String txAdvisorBeanName = TransactionManagementConfigUtils.TRANSACTION_ADVISOR_BEAN_NAME;
-			if (!parserContext.getRegistry().containsBeanDefinition(txAdvisorBeanName)) {
-				// Create the TransactionAttributeSource definition.
-				RootBeanDefinition sourceDef = new RootBeanDefinition(AnnotationTransactionAttributeSource.class);
-				sourceDef.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
-				parserContext.getRegistry().registerBeanDefinition("validAnnotationTransactionAttributeSource", sourceDef);
-
-				// Create the TransactionInterceptor definition.
-				RootBeanDefinition interceptorDef = new RootBeanDefinition(TransactionInterceptor.class);
-				interceptorDef.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
-				interceptorDef.getPropertyValues().add("transactionManagerBeanName", transactionManager);
-				interceptorDef.getPropertyValues().add("transactionAttributeSource",
-						new RuntimeBeanReference("validAnnotationTransactionAttributeSource"));
-				String interceptorName = parserContext.getReaderContext().registerWithGeneratedName(interceptorDef);
-
-				// Create the TransactionAttributeSourceAdvisor definition.
-				RootBeanDefinition advisorDef = new RootBeanDefinition(BeanFactoryTransactionAttributeSourceAdvisor.class);
-				advisorDef.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
-				advisorDef.getPropertyValues().add("transactionAttributeSource", new RuntimeBeanReference("validAnnotationTransactionAttributeSource"));
-				advisorDef.getPropertyValues().add("adviceBeanName", interceptorName);
-				advisorDef.getPropertyValues().add("order", TRANSACTION_ADVISOR_ORDER);
-				parserContext.getRegistry().registerBeanDefinition(txAdvisorBeanName, advisorDef);
-
-			}
-		}
-	}
-
-	/**
 	 * 创建读写分离数据源
 	 *
 	 * @param masterDataSourceMapper
@@ -303,6 +194,190 @@ public class MatrixDatasourceBeanDefinitionParser implements BeanDefinitionParse
 		parserContext.getRegistry().registerBeanDefinition(matrixName, dsBeanDefinition);
 	}
 
+
+	//.......................................................//
+
+	/**
+	 * 创建分库拦截器
+	 *
+	 * @param matrixDataSourceMetaModel
+	 * @param parserContext
+	 * @param appDoc
+	 */
+	private void registerRepositoryShardingInterceptor(MatrixDataSourceMetaModel matrixDataSourceMetaModel, ParserContext parserContext, Document appDoc) {
+		// 数据源名称
+		String matrixName = matrixDataSourceMetaModel.getMatrixName();
+
+		RootBeanDefinition repositoryShardingDataSourceInterceptor = new RootBeanDefinition(RepositoryShardingDataSourceInterceptor.class);
+		parserContext.getRegistry().registerBeanDefinition(DataSourceUtils.buildBeanName(matrixName, REPOSITORY_SHARDING_DATASOURCE_INTERCEPTOR), repositoryShardingDataSourceInterceptor);
+
+		// 创建 aop xml 元素
+		BeanDefinitionParserDelegate beanDefDelegate = parserContext.getDelegate();
+		beanDefDelegate.parseCustomElement(buildRepositoryShardingAopConfigElmt(matrixDataSourceMetaModel, appDoc));
+	}
+
+	/**
+	 * build RepositorySharding aop config element
+	 *
+	 * @param matrixDataSourceMetaModel
+	 * @param appDoc
+	 * @return
+	 */
+	private Element buildRepositoryShardingAopConfigElmt(MatrixDataSourceMetaModel matrixDataSourceMetaModel, Document appDoc) {
+		// 数据源名称
+		String matrixName = matrixDataSourceMetaModel.getMatrixName();
+
+		Element repositoryShardingAopConfigElmt = appDoc.createElementNS(AOP_NAMESPACE_URI, CONFIG);
+		Element repositoryShardingPointcutChild = appDoc.createElementNS(AOP_NAMESPACE_URI, POINTCUT);
+		repositoryShardingPointcutChild.setAttribute(XSD_ID,
+				DataSourceUtils.buildBeanName(matrixName, REPOSITORY_SHARDING_DATA_SOURCE_POINTCUT));
+		repositoryShardingPointcutChild.setAttribute(EXPRESSION, matrixDataSourceMetaModel.getRepositoryShardingPointcut());
+		repositoryShardingAopConfigElmt.appendChild(repositoryShardingPointcutChild);
+
+		Element repositoryShardingAdvisorChild = appDoc.createElementNS(AOP_NAMESPACE_URI, ADVISOR);
+		repositoryShardingAdvisorChild.setAttribute(POINTCUT_REF,
+				DataSourceUtils.buildBeanName(matrixName, REPOSITORY_SHARDING_DATA_SOURCE_POINTCUT));
+		repositoryShardingAdvisorChild.setAttribute(ADVICE_REF,
+				DataSourceUtils.buildBeanName(matrixName, REPOSITORY_SHARDING_DATASOURCE_INTERCEPTOR));
+		repositoryShardingAdvisorChild.setAttribute(XSD_MATRIX_ORDER, REPOSITORY_SHARDING_DATA_SOURCE_POINTCUT_ORDER);
+		repositoryShardingAopConfigElmt.appendChild(repositoryShardingAdvisorChild);
+		return repositoryShardingAopConfigElmt;
+	}
+
+	//.......................................................//
+
+	/**
+	 * 创建主从数据源拦截器
+	 *
+	 * @param matrixDataSourceMetaModel
+	 * @param parserContext
+	 * @param appDoc
+	 */
+	private void registerMasterSlaveInterceptor(MatrixDataSourceMetaModel matrixDataSourceMetaModel, ParserContext parserContext, Document appDoc) {
+		if (!parserContext.getRegistry().isBeanNameInUse(ANNOTATION_MASTER_SLAVE_DATASOURCE_INTERCEPTOR)) {
+
+			RootBeanDefinition rootBeanDefinition = new RootBeanDefinition(AnnotationMasterSlaveDataSourceInterceptor.class);
+			parserContext.getRegistry().registerBeanDefinition(ANNOTATION_MASTER_SLAVE_DATASOURCE_INTERCEPTOR, rootBeanDefinition);
+			// 创建 xml 元素
+			BeanDefinitionParserDelegate beanDefDelegate = parserContext.getDelegate();
+			beanDefDelegate.parseCustomElement(buildMasterSlaveAopConfigElmt(matrixDataSourceMetaModel, appDoc));
+
+		}
+	}
+
+	private Element buildMasterSlaveAopConfigElmt(MatrixDataSourceMetaModel matrixDataSourceMetaModel, Document appDoc) {
+		// 组装 Spring AOP Config 标签
+		Element annotationMasterSlaveAopConfigElmt = appDoc.createElementNS(AOP_NAMESPACE_URI, CONFIG);
+
+		// 切面表达式元素
+		Element annotationMasterSlavePointcutChild = appDoc.createElementNS(AOP_NAMESPACE_URI, POINTCUT);
+		annotationMasterSlavePointcutChild.setAttribute(XSD_ID, ANNOTATION_MASTER_SLAVE_DATA_SOURCE_POINTCUT);
+		annotationMasterSlavePointcutChild.setAttribute(EXPRESSION, MASTERSLAVE_POINTCUT_EXPRESSION);
+		annotationMasterSlaveAopConfigElmt.appendChild(annotationMasterSlavePointcutChild);
+
+		// advisor元素
+		Element annotationMasterSlaveAdvisorChild = appDoc.createElementNS(AOP_NAMESPACE_URI, ADVISOR);
+		annotationMasterSlaveAdvisorChild.setAttribute(POINTCUT_REF, ANNOTATION_MASTER_SLAVE_DATA_SOURCE_POINTCUT);
+		annotationMasterSlaveAdvisorChild.setAttribute(ADVICE_REF, ANNOTATION_MASTER_SLAVE_DATASOURCE_INTERCEPTOR);
+		annotationMasterSlaveAdvisorChild.setAttribute(XSD_MATRIX_ORDER, ANNOTATION_MASTERSLAVE_POINTCUT_ORDER);
+		annotationMasterSlaveAopConfigElmt.appendChild(annotationMasterSlaveAdvisorChild);
+		return annotationMasterSlaveAopConfigElmt;
+	}
+
+	//.......................................................//
+
+	/**
+	 * 创建分表拦截器
+	 *
+	 * @param matrixDataSourceMetaModel
+	 * @param parserContext
+	 * @param appDoc
+	 */
+	private void registerTableShardingInterceptor(MatrixDataSourceMetaModel matrixDataSourceMetaModel, ParserContext parserContext, Document appDoc) {
+		// 数据源名称
+		String matrixName = matrixDataSourceMetaModel.getMatrixName();
+
+		RootBeanDefinition tableShardingDataSourceInterceptor = new RootBeanDefinition(TableShardingDataSourceInterceptor.class);
+		parserContext.getRegistry().registerBeanDefinition(DataSourceUtils.buildBeanName(matrixName, TABLE_SHARDING_DATASOURCE_INTERCEPTOR), tableShardingDataSourceInterceptor);
+
+		// 创建 aop 标签
+		BeanDefinitionParserDelegate beanDefDelegate = parserContext.getDelegate();
+		beanDefDelegate.parseCustomElement(buildTableShardingAopConfigElmt(matrixDataSourceMetaModel, appDoc));
+
+		// 创建 mybatis 插件
+		RootBeanDefinition shardingPlugin = new RootBeanDefinition(TableShardingPlugin.class);
+		parserContext.getRegistry().registerBeanDefinition(DataSourceUtils.buildBeanName(matrixName, SHARDING_PLUGIN), shardingPlugin);
+
+		// 注入分表插件
+		if (parserContext.getRegistry().containsBeanDefinition(matrixDataSourceMetaModel.getMybatisSqlSessionFactory())) {
+			BeanDefinition sqlSessionFactory = parserContext.getRegistry().getBeanDefinition(matrixDataSourceMetaModel.getMybatisSqlSessionFactory());
+			ManagedArray   plugins           = (ManagedArray) sqlSessionFactory.getPropertyValues().get(PLUGINS);
+			if (plugins == null) {
+				plugins = new ManagedArray(Interceptor.class.getName(), 1);
+				sqlSessionFactory.getPropertyValues().add(PLUGINS, plugins);
+			}
+			plugins.add(0, new RuntimeBeanReference(DataSourceUtils.buildBeanName(matrixName, SHARDING_PLUGIN)));
+		}
+	}
+
+	private Element buildTableShardingAopConfigElmt(MatrixDataSourceMetaModel matrixDataSourceMetaModel, Document appDoc) {
+		// 数据源名称
+		String matrixName = matrixDataSourceMetaModel.getMatrixName();
+
+		Element tableShardingAopConfigElmt = appDoc.createElementNS(AOP_NAMESPACE_URI, CONFIG);
+		Element tableShardingPointcutChild = appDoc.createElementNS(AOP_NAMESPACE_URI, POINTCUT);
+		tableShardingPointcutChild.setAttribute(XSD_ID, DataSourceUtils.buildBeanName(matrixName, TABLE_SHARDING_DATA_SOURCE_POINTCUT));
+		tableShardingPointcutChild.setAttribute(EXPRESSION, matrixDataSourceMetaModel.getTableShardingPointcut());
+		tableShardingAopConfigElmt.appendChild(tableShardingPointcutChild);
+
+		Element tableShardingAdvisorChild = appDoc.createElementNS(AOP_NAMESPACE_URI, ADVISOR);
+		tableShardingAdvisorChild.setAttribute(POINTCUT_REF, DataSourceUtils.buildBeanName(matrixName, TABLE_SHARDING_DATA_SOURCE_POINTCUT));
+		tableShardingAdvisorChild.setAttribute(ADVICE_REF, DataSourceUtils.buildBeanName(matrixName, TABLE_SHARDING_DATASOURCE_INTERCEPTOR));
+		tableShardingAdvisorChild.setAttribute(XSD_MATRIX_ORDER, TABLE_SHARDING_DATA_SOURCE_POINTCUT_ORDER);
+		tableShardingAopConfigElmt.appendChild(tableShardingAdvisorChild);
+		return tableShardingAopConfigElmt;
+	}
+
+	//.......................................................//
+
+	/**
+	 * 注册事务配置
+	 *
+	 * @param matrixDataSourceMetaModel
+	 * @param parserContext
+	 */
+	private void registerTransaction(MatrixDataSourceMetaModel matrixDataSourceMetaModel, ParserContext parserContext) {
+		String transactionManager = matrixDataSourceMetaModel.getTransactionManager();
+		if (!StringUtils.isEmpty(transactionManager)) {
+			String txAdvisorBeanName = TransactionManagementConfigUtils.TRANSACTION_ADVISOR_BEAN_NAME;
+			if (!parserContext.getRegistry().containsBeanDefinition(txAdvisorBeanName)) {
+				// Create the TransactionAttributeSource definition.
+				RootBeanDefinition sourceDef = new RootBeanDefinition(AnnotationTransactionAttributeSource.class);
+				sourceDef.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
+				parserContext.getRegistry().registerBeanDefinition("validAnnotationTransactionAttributeSource", sourceDef);
+
+				// Create the TransactionInterceptor definition.
+				RootBeanDefinition interceptorDef = new RootBeanDefinition(TransactionInterceptor.class);
+				interceptorDef.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
+				interceptorDef.getPropertyValues().add("transactionManagerBeanName", transactionManager);
+				interceptorDef.getPropertyValues().add("transactionAttributeSource",
+						new RuntimeBeanReference("validAnnotationTransactionAttributeSource"));
+				String interceptorName = parserContext.getReaderContext().registerWithGeneratedName(interceptorDef);
+
+				// Create the TransactionAttributeSourceAdvisor definition.
+				RootBeanDefinition advisorDef = new RootBeanDefinition(BeanFactoryTransactionAttributeSourceAdvisor.class);
+				advisorDef.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
+				advisorDef.getPropertyValues().add("transactionAttributeSource", new RuntimeBeanReference("validAnnotationTransactionAttributeSource"));
+				advisorDef.getPropertyValues().add("adviceBeanName", interceptorName);
+				advisorDef.getPropertyValues().add("order", TRANSACTION_ADVISOR_ORDER);
+				parserContext.getRegistry().registerBeanDefinition(txAdvisorBeanName, advisorDef);
+
+			}
+		}
+	}
+
+	//.......................................................//
+
 	/**
 	 * 获取连接配置对象
 	 *
@@ -314,6 +389,8 @@ public class MatrixDatasourceBeanDefinitionParser implements BeanDefinitionParse
 		String matrixName = element.getAttribute(XSD_ID);
 		// 获取事务管理器名称
 		String transactionManager = element.getAttribute(XSD_TRANSACTION_MANAGER);
+		// 获取 SqlSessionFactory
+		String myBatisSqlSessionFactory = element.getAttribute(XSD_MYBATIS_SQLSESSION_FACTORY);
 		// 数据源 group 列表
 		String                           configValue               = PropertyHolder.getProperty(buidMatrixDataKey(matrixName));
 		List<MatrixDataSourceGroupModel> matrixDataSourceGroupList = JSONArray.parseArray(configValue, MatrixDataSourceGroupModel.class);
@@ -321,6 +398,7 @@ public class MatrixDatasourceBeanDefinitionParser implements BeanDefinitionParse
 		// 解析数据源配置 atomName - pool config
 		Map<String, MatrixPoolConfigMetaModel> atomDataSourcePoolConfig            = new LinkedHashMap<>();
 		String                                 repositoryShrdingPointcutExpression = null;
+		String                                 tableShardingPointcutExpression     = null;
 		NodeList                               nodeList                            = element.getChildNodes();
 		if (nodeList != null && nodeList.getLength() > 0) {
 			for (int i = 0; i < nodeList.getLength(); i++) {
@@ -335,6 +413,11 @@ public class MatrixDatasourceBeanDefinitionParser implements BeanDefinitionParse
 							throw new IllegalArgumentException("repoistory sharding config exist already!");
 						}
 						repositoryShrdingPointcutExpression = ele.getAttribute(XSD_MATRIX_POINTCUT_EXPRESSION);
+					} else if (ele.getTagName().endsWith(XSD_MATRIX_TABLE_SHARDING)) {
+						if (!StringUtils.isEmpty(tableShardingPointcutExpression)) {
+							throw new IllegalArgumentException("table sharding config exist already!");
+						}
+						tableShardingPointcutExpression = ele.getAttribute(XSD_MATRIX_POINTCUT_EXPRESSION);
 					}
 				}
 			}
@@ -344,9 +427,11 @@ public class MatrixDatasourceBeanDefinitionParser implements BeanDefinitionParse
 		MatrixDataSourceMetaModel matrixDataSourceMetaModel = new MatrixDataSourceMetaModel();
 		matrixDataSourceMetaModel.setMatrixName(matrixName);
 		matrixDataSourceMetaModel.setTransactionManager(transactionManager);
+		matrixDataSourceMetaModel.setMybatisSqlSessionFactory(myBatisSqlSessionFactory);
 		matrixDataSourceMetaModel.setMatrixDataSourceGroupList(matrixDataSourceGroupList);
 		matrixDataSourceMetaModel.setAtomDataSourcePoolConfig(atomDataSourcePoolConfig);
 		matrixDataSourceMetaModel.setRepositoryShardingPointcut(repositoryShrdingPointcutExpression);
+		matrixDataSourceMetaModel.setTableShardingPointcut(tableShardingPointcutExpression);
 		return matrixDataSourceMetaModel;
 	}
 

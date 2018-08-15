@@ -1,6 +1,6 @@
 package com.sharksharding.common.annotation;
 
-import com.sharksharding.enums.MasterSlaveType;
+import com.sharksharding.common.enums.MasterSlaveType;
 
 import java.lang.annotation.*;
 

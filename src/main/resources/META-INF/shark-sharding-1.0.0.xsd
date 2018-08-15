@@ -19,7 +19,7 @@
     <!-- 分表配置 -->
     <xs:element name="table-sharding">
         <xs:complexType>
-            <xs:attribute name="strategies-package" use="required" type="xs:string"/>
+            <xs:attribute name="pointcut-expression" use="required" type="xs:string"/>
             <xs:attribute name="order" type="xs:string"/>
         </xs:complexType>
     </xs:element>
@@ -61,7 +61,7 @@
             <!-- 该数据源使用的事务管理器 -->
             <xs:attribute name="transactionManager" use="required" type="xs:string"/>
             <!-- 该数据源对应的 MybatisSqlSessionFactory 名称，分表场景需要 -->
-            <xs:attribute name="myBatisSqlSessionFactory" type="xs:string" default="myBatisSqlSessionFactory"/>
+            <xs:attribute name="myBatisSqlSessionFactory" type="xs:string" use="required"/>
         </xs:complexType>
     </xs:element>
 </xs:schema>

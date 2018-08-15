@@ -33,7 +33,8 @@
     </bean>
 
     <!-- 创建 TestSDK 数据源 -->
-    <shark-sharding:matrix-datasource id="TestSDK" transactionManager="TestSDKTransactionManager">
+    <shark-sharding:matrix-datasource id="TestSDK" transactionManager="TestSDKTransactionManager"
+                                      myBatisSqlSessionFactory="TestSDKSqlSessionFactory">
         <shark-sharding:pool-configs>
             <shark-sharding:pool-config atom-names="*">
                 <shark-sharding:property name="initialSize" value="3"/>
@@ -85,6 +86,46 @@
         </shark-sharding:pool-configs>
         <shark-sharding:repository-sharding
                 pointcut-expression="execution(* com.sharksharding.test.service.impl.sharding..*.*(..))"/>
+    </shark-sharding:matrix-datasource>
+
+    <!-- ................ -->
+    <!-- 事务管理器 -->
+    <bean id="TableShardSDKTransactionManager"
+          class="com.sharksharding.datasource.SmartDataSourceTransactionManager">
+        <property name="dataSource" ref="TableShardSDK"/>
+    </bean>
+
+    <!-- MyBatis配置 -->
+    <bean id="TableShardSDKSqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="TableShardSDK"/>
+        <property name="mapperLocations" value="classpath*:mapper/tableshardsdk/*Mapper.xml"/>
+    </bean>
+
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.sharksharding.test.repository.tableshardsdk"/>
+        <property name="sqlSessionFactoryBeanName" value="TableShardSDKSqlSessionFactory"/>
+        <property name="annotationClass" value="org.springframework.stereotype.Repository"/>
+    </bean>
+    <!-- 创建 ShardingDbSDK 数据源 -->
+    <shark-sharding:matrix-datasource id="TableShardSDK"
+                                      transactionManager="TableShardSDKTransactionManager"
+                                      myBatisSqlSessionFactory="TableShardSDKSqlSessionFactory">
+        <shark-sharding:pool-configs>
+            <shark-sharding:pool-config atom-names="*">
+                <shark-sharding:property name="initialSize" value="3"/>
+                <shark-sharding:property name="minIdle" value="3"/>
+                <shark-sharding:property name="maxActive" value="15"/>
+                <shark-sharding:property name="maxWait" value="5000"/>
+                <shark-sharding:property name="timeBetweenEvictionRunsMillis" value="90000"/>
+                <shark-sharding:property name="minEvictableIdleTimeMillis" value="1800000"/>
+                <shark-sharding:property name="testOnBorrow" value="false"/>
+                <shark-sharding:property name="testOnReturn" value="false"/>
+                <shark-sharding:property name="testWhileIdle" value="true"/>
+            </shark-sharding:pool-config>
+        </shark-sharding:pool-configs>
+        <!-- 分表配置在 DAO 层 -->
+        <shark-sharding:table-sharding
+                pointcut-expression="execution(* com.sharksharding.test.repository.tableshardsdk..*.*(..))"/>
     </shark-sharding:matrix-datasource>
 
 </beans>

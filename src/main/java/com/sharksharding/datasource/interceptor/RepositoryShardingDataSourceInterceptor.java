@@ -1,8 +1,8 @@
 package com.sharksharding.datasource.interceptor;
 
 import com.sharksharding.common.Utils;
-import com.sharksharding.common.holder.RepositoryShardingDataSourceHolder;
 import com.sharksharding.common.annotation.RepositorySharding;
+import com.sharksharding.common.holder.RepositoryShardingDataSourceHolder;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.slf4j.Logger;
@@ -33,7 +33,8 @@ public class RepositoryShardingDataSourceInterceptor implements MethodIntercepto
 	@Override
 	public Object invoke(MethodInvocation invocation) throws Throwable {
 		String debugInfo = "[" + invocation.toString() + "]";
-		LOGGER.debug("enter into repository sharding data source interceptor {}", debugInfo);
+		if (LOGGER.isDebugEnabled())
+			LOGGER.debug("enter into repository sharding data source interceptor {}", debugInfo);
 
 		// 获取实际执行的方法
 		Method             realMethod = MethodHelper.getRealMethod(invocation);

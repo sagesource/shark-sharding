@@ -1,6 +1,6 @@
 package com.sharksharding.common;
 
-import com.sharksharding.enums.MasterSlaveType;
+import com.sharksharding.common.enums.MasterSlaveType;
 import com.sharksharding.model.MatrixAtomModel;
 import com.sharksharding.model.MatrixDataSourceGroupModel;
 import com.sharksharding.model.MatrixPoolConfigMetaModel;
