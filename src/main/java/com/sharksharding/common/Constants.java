@@ -63,9 +63,9 @@ public interface Constants {
 	String POINTCUT                                     = "pointcut";
 
 	// inteceptor order
-	String TABLE_SHARDING_DATA_SOURCE_POINTCUT_ORDER      = "100";
-	String REPOSITORY_SHARDING_DATA_SOURCE_POINTCUT_ORDER = "100";
-	String ANNOTATION_MASTERSLAVE_POINTCUT_ORDER          = "200";
+	String TABLE_SHARDING_DATA_SOURCE_POINTCUT_ORDER      = "200";
+	String REPOSITORY_SHARDING_DATA_SOURCE_POINTCUT_ORDER = "200";
+	String ANNOTATION_MASTERSLAVE_POINTCUT_ORDER          = "100";
 	String TRANSACTION_ADVISOR_ORDER                      = "300";
 
 	// matrix config zk path
